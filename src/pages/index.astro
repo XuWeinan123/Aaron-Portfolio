@@ -1,0 +1,47 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Aaron Xu - Cloudflare Test">
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">PORTFOLIO SANDBOX</p>
+      <h1>一个足够小的<br /><span>部署测试站。</span></h1>
+      <p class="intro">
+        延续原作品集的 Astro 架构与设计语言，用来验证构建、域名、缓存和 HTTPS 配置。
+      </p>
+      <a class="primary-action" href="#status">查看部署信息 <span aria-hidden="true">→</span></a>
+    </div>
+    <figure class="hero-visual">
+      <img
+        src="/hero-paper-planes.jpg"
+        width="1280"
+        height="960"
+        alt="白色与靛蓝色纸飞机构成的抽象画面"
+        loading="eager"
+        fetchpriority="high"
+      />
+    </figure>
+  </section>
+
+  <section class="status" id="status" aria-labelledby="status-title">
+    <div>
+      <h2 id="status-title">部署配置</h2>
+      <p>连接 Git 仓库后，使用以下设置即可完成一次 Cloudflare Pages 测试。</p>
+    </div>
+    <dl>
+      <div>
+        <dt>Build command</dt>
+        <dd><code>npm run build</code></dd>
+      </div>
+      <div>
+        <dt>Build directory</dt>
+        <dd><code>dist</code></dd>
+      </div>
+      <div>
+        <dt>Node version</dt>
+        <dd><code>22</code></dd>
+      </div>
+    </dl>
+  </section>
+</Base>
