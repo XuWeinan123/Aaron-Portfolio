@@ -17,6 +17,7 @@
 | `css/style.css` | 手账风样式(纸纹、和纸胶带、水彩色)，字体走 Google Fonts(ZCOOL KuaiLe / Zhi Mang Xing / Noto Serif SC) |
 | `js/app.js` | 入口：解析 `?from=` → 选数据集 → 初始化地图；`DEPARTURES` 注册表在此 |
 | `js/map.js` | D3 地图引擎：Albers 投影、手绘抖动/水彩滤镜、等时圈栅格采样 + `d3.contours`、城市贴纸、缩放 LOD。数据经 `init({ data })` 注入，引擎本身不感知出发城市 |
+| `js/iso-worker.js` | 等时圈计算 Worker：在后台线程完成距离场采样与 `d3.contours`，向主线程返回 SVG path；模式结果按视口缓存 |
 | `js/panel.js` | 城市手账面板：交通票根对比、推荐理由、景点贴纸、逐日行程 |
 | `data/cities.js` | **基础数据源**：`CITY_DATA_HANGZHOU`(190 个目的地城市的完整攻略 + 杭州端交通与接驳常量)。攻略内容(spots/itinerary/tips)为各出发城市共用 |
 | `data/cities-shanghai.js` | **上海端覆盖**：`CITY_DATA_SHANGHAI`。只登记每个目的地的 `transport`/`recommend`(+ 可选 hook/tagline/tips/label/minK 覆盖)，攻略内容沿用 cities.js；剔除「上海」。**同时定义共享常量 `HANGZHOU_DEST_BASE`**(杭州作为目的地的内容，各出发城市数据文件共用，故加载顺序上必须先于其他 cities-*.js) |
@@ -29,8 +30,9 @@
 - 缩放范围 `scaleExtent [0.5, 18]`;右下角有缩放控件(放大/缩小/恢复 100%,内联 Phosphor Icons SVG),城市详情 panel 打开时自动隐藏(CSS 兄弟选择器)。
 - LOD 三档(`applyZoomStyles`):`k < 0.85` 全部地点缩成小图标(无文字);`0.85 ≤ k < 1.8` 只显示名称;`k ≥ 1.8` 名称 + 耗时。`minK` 城市仍需放大到 `minK` 才展开。
 - 反向缩放:图标屏幕尺寸 = `sqrt(k)`(温和放大),文本恒定屏幕大小(`scale(1/k)` 反向抵消),放大后不占地。
+- 拖动/缩放事件按 `requestAnimationFrame` 合帧；纯平移只更新地图根 transform，城市坐标不会逐帧重算。LOD 仅在跨过阈值时更新。
 - 贴纸 transform 三层分工:`.sticker-zoom`(缩放反比例,跟手不过渡)> `.sticker-lod`(LOD 折叠,250ms 过渡)> `.sticker-bg`(hover 恒 1.18 倍)。**不要把缩放值写进 `.sticker-bg` 的 transform 属性**——CSS hover 会整体替换它。
-- 模式切换动效:旧 `.layer-iso`/`.layer-cities` 克隆成 `.layer-ghost` 压在新层上淡出(300ms 交叉溶解);克隆节点无 d3 数据,`applyZoomStyles` 的选择器已限定在真实图层内。出发城市切换:离场 body 淡出 200ms(app.js)+ 到场 `.root` fade-in 动画 450ms。全部动效在 `prefers-reduced-motion` 下禁用。
+- 模式切换:城市节点原地更新，不克隆或重建 `.layer-cities`;等时圈由 `iso-worker.js` 后台计算并缓存，只让约十条新旧等时 path 做 300ms 交叉溶解。出发城市切换:离场 body 淡出 200ms(app.js)+ 到场 `.root` fade-in 动画 450ms。全部动效在 `prefers-reduced-motion` 下禁用。
 
 ## 等时圈模型(map.js)
 

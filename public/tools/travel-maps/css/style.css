@@ -152,9 +152,6 @@ body.page-leave { opacity: 0; }
 
 .iso-band { pointer-events: none; mix-blend-mode: multiply; }
 
-/* 模式切换:旧层克隆(.layer-ghost)压在新层上淡出 = 交叉溶解 */
-.layer-ghost { transition: opacity .3s ease; pointer-events: none; }
-
 /* 整图根:首屏/切换出发城市到场淡入(animation 保证新插入节点首帧播放) */
 .root { animation: fade-in .45s ease; }
 @keyframes fade-in { from { opacity: 0; } }
@@ -162,7 +159,7 @@ body.page-leave { opacity: 0; }
 /* 城市贴纸
    transform 分三层：.sticker-zoom(缩放反比例,跟手不过渡)
    > .sticker-lod(LOD 折叠/展开,带过渡) > .sticker-bg(hover,恒定 1.18 倍) */
-.city-sticker { cursor: pointer; }
+.city-sticker { cursor: pointer; transition: opacity .2s ease; }
 .city-sticker .sticker-lod {
   transition: transform .25s ease;
   transform-origin: center; transform-box: fill-box;
@@ -173,6 +170,8 @@ body.page-leave { opacity: 0; }
   filter: drop-shadow(1.5px 2.5px 1px rgba(74,63,53,.28));
 }
 .city-sticker:hover .sticker-bg { transform: scale(1.18); }
+.city-sticker .sticker-outline,
+.city-sticker .sticker-fill { transition: fill .2s ease, stroke .2s ease; }
 .city-label {
   font-family: var(--font-cute); fill: var(--ink);
   paint-order: stroke; stroke: #fff8ec; stroke-width: 3px;
@@ -401,7 +400,8 @@ body.page-leave { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .zoom-btn, #panel, .city-sticker .sticker-lod, .city-sticker .sticker-bg,
-  .city-label, .city-time-tag, .city-dd-menu, .layer-ghost, body,
+  .city-sticker, .city-sticker .sticker-outline, .city-sticker .sticker-fill,
+  .city-label, .city-time-tag, .city-dd-menu, body,
   #hover-tip { transition: none; }
   .home-pulse { animation: none; opacity: 0; }
   .root { animation: none; }

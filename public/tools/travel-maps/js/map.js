@@ -27,6 +27,15 @@ const TravelMap = (() => {
   let onCityClick = () => {};
   let width = 0, height = 0;
   let DATA; // 当前出发城市的数据集 { home, cities, anchors }
+  let chinaD = "", contourPath;
+  let citySelection, cityOutlineSelection, cityFillSelection, cityTimeSelection;
+  let zoomItems = [];
+  let pendingZoomTransform = null, zoomFrame = 0, lastZoomK = NaN, lastLodBucket = -1;
+
+  const isoCache = new Map();
+  const isoPending = new Map();
+  const isoRequests = new Map();
+  let isoWorker = null, isoWorkerFailed = false, isoRequestId = 0, modeRequestId = 0;
 
   /* ---------- 工具 ---------- */
 
@@ -108,21 +117,28 @@ const TravelMap = (() => {
       .fitExtent([[20, 16], [width - 20, height - 8]],
         { type: "FeatureCollection", features: provinces });
     geoPath = d3.geoPath(projection);
+    chinaD = geoPath({ type: "GeometryCollection", geometries: provinces.map(f => f.geometry) });
+    contourPath = d3.geoPath(d3.geoIdentity().scale(GRID_STEP));
 
     buildDefs();
 
     rootG = svg.append("g").attr("class", "root");
 
     rootG.append("g").attr("class", "layer-provinces");
-    rootG.append("g").attr("class", "layer-iso").attr("clip-path", "url(#clip-china)");
+    rootG.append("g")
+      .attr("class", "layer-iso layer-iso-current")
+      .attr("clip-path", "url(#clip-china)");
     rootG.append("g").attr("class", "layer-border");
     rootG.append("g").attr("class", "layer-routes");
     rootG.append("g").attr("class", "layer-cities");
 
     drawProvinces();
-    drawIsochrones();
+    const initialIso = computeIsochrones(mode);
+    isoCache.set(isoCacheKey(mode), initialIso);
+    populateIsoLayer(rootG.select(".layer-iso-current"), initialIso);
     drawCities();
     drawHome();
+    cacheZoomItems();
     buildLegend();
 
     // 首屏/切换出发城市到场:整图淡入由 CSS .root 的 fade-in 动画负责
@@ -131,11 +147,13 @@ const TravelMap = (() => {
     zoomBehavior = d3.zoom()
       .scaleExtent([0.5, 18])
       .on("zoom", ev => {
-        rootG.attr("transform", ev.transform);
-        applyZoomStyles(ev.transform.k);
+        pendingZoomTransform = ev.transform;
+        if (!zoomFrame) zoomFrame = requestAnimationFrame(flushZoomFrame);
       });
     svg.call(zoomBehavior).on("dblclick.zoom", null);
-    applyZoomStyles(1);
+    applyZoomStyles(1, true);
+
+    initIsoWorker();
   }
 
   function buildDefs() {
@@ -165,7 +183,7 @@ const TravelMap = (() => {
     // clipPath 会整体判空（已实测），单条合并路径则正常。
     defs.append("clipPath").attr("id", "clip-china")
       .append("path")
-      .attr("d", geoPath({ type: "GeometryCollection", geometries: provinces.map(f => f.geometry) }));
+      .attr("d", chinaD);
   }
 
   /* ---------- 省份 ---------- */
@@ -201,20 +219,34 @@ const TravelMap = (() => {
 
   /* ---------- 等时圈 ---------- */
 
-  function isoAnchors() {
+  function isoAnchors(targetMode = mode) {
     return [...DATA.cities, ...DATA.anchors]
-      .map(p => ({ coord: p.coord, t: doorToDoor(p, mode) }))
+      .map(p => ({ coord: p.coord, t: doorToDoor(p, targetMode) }))
       .filter(p => p.t != null);
   }
 
-  function drawIsochrones() {
-    const anchors = isoAnchors().map(a => {
-      const [x, y] = projection(a.coord);
-      return { x, y, t: a.t, coord: a.coord };
+  function isoCacheKey(targetMode) {
+    return `${targetMode}:${width}x${height}`;
+  }
+
+  function contourPaths(values, cols, rows) {
+    const inverted = values.map(v => -v);
+    const thresholds = BANDS.slice(0, -1).map(band => -band.max);
+    const contours = d3.contours()
+      .size([cols, rows])
+      .thresholds(thresholds)(inverted);
+    const byValue = new Map(contours.map(c => [c.value, c]));
+
+    return thresholds.map(value => {
+      const c = byValue.get(value);
+      return (c && c.coordinates.length) ? contourPath(c) : null;
     });
+  }
+
+  function computeIsochrones(targetMode) {
+    const anchors = isoAnchors(targetMode);
     // 出发城市本身耗时为 0
-    const [hx, hy] = projection(DATA.home.coord);
-    anchors.push({ x: hx, y: hy, t: 0, coord: DATA.home.coord });
+    anchors.push({ coord: DATA.home.coord, t: 0 });
 
     const cols = Math.ceil(width / GRID_STEP), rows = Math.ceil(height / GRID_STEP);
     const values = new Float64Array(cols * rows);
@@ -236,22 +268,45 @@ const TravelMap = (() => {
       }
     }
 
-    const layer = rootG.select(".layer-iso");
-    layer.selectAll("*").remove();
+    return contourPaths(values, cols, rows);
+  }
 
-    // d3.contours 生成 "值 >= 阈值" 的区域，而色带要表达 "<= 阈值"，
-    // 故对时间场取反后再取等值面：>= -max 即 <= max。
-    const inverted = values.map(v => -v);
-    const idPath = d3.geoPath(d3.geoIdentity().scale(GRID_STEP));
-    const regionD = BANDS.slice(0, -1).map(band => {
-      const c = d3.contours().size([cols, rows]).thresholds([-band.max])(inverted)[0];
-      return (c && c.coordinates.length) ? idPath(c) : null;
-    });
+  async function computeIsochronesChunked(targetMode) {
+    const anchors = isoAnchors(targetMode);
+    anchors.push({ coord: DATA.home.coord, t: 0 });
+
+    const cols = Math.ceil(width / GRID_STEP), rows = Math.ceil(height / GRID_STEP);
+    const values = new Float64Array(cols * rows);
+    const total = cols * rows;
+    let index = 0;
+
+    while (index < total) {
+      const deadline = performance.now() + 8;
+      do {
+        const i = index % cols, j = Math.floor(index / cols);
+        const geo = projection.invert([i * GRID_STEP, j * GRID_STEP]);
+        let best = Infinity;
+        if (geo && isFinite(geo[0]) && isFinite(geo[1])) {
+          for (const a of anchors) {
+            const km = haversineKm(geo, a.coord);
+            const t = a.t + (km / ONWARD_SPEED_KMH) * 60;
+            if (t < best) best = t;
+          }
+        }
+        values[index++] = Math.min(best, 1e5);
+      } while (index < total && performance.now() < deadline);
+
+      if (index < total) await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    return contourPaths(values, cols, rows);
+  }
+
+  function populateIsoLayer(layer, regionD) {
+    layer.selectAll("*").remove();
 
     // 关键：每个色带画成"环"（本带区域挖掉更近一带），用 evenodd 实现，
     // 否则嵌套圆盘 + multiply 会把所有颜色乘在一起变成泥色。
-    const chinaD = geoPath({ type: "GeometryCollection", geometries: provinces.map(f => f.geometry) });
-
     // 最外圈（12h+）：全国轮廓挖掉最大等时区域
     const outermost = [...regionD].reverse().find(d => d);
     layer.append("path")
@@ -286,6 +341,128 @@ const TravelMap = (() => {
     });
   }
 
+  function replaceIsoLayer(regionD, animate = true) {
+    rootG.selectAll(".layer-iso-retiring").interrupt().remove();
+
+    const current = rootG.select(".layer-iso-current");
+    const next = rootG.insert("g", ".layer-border")
+      .attr("class", "layer-iso layer-iso-current")
+      .attr("clip-path", "url(#clip-china)");
+    populateIsoLayer(next, regionD);
+
+    current.attr("class", "layer-iso layer-iso-retiring").interrupt();
+    if (!animate || reduceMotion()) {
+      current.remove();
+      return;
+    }
+
+    next.attr("opacity", 0)
+      .transition().duration(300)
+      .attr("opacity", 1);
+    current.transition().duration(300)
+      .attr("opacity", 0)
+      .remove();
+  }
+
+  function failIsoWorker(error) {
+    if (isoWorker) isoWorker.terminate();
+    isoWorker = null;
+    isoWorkerFailed = true;
+    const reason = error instanceof Error ? error : new Error(String(error || "Iso worker failed"));
+    for (const request of isoRequests.values()) request.reject(reason);
+    isoRequests.clear();
+    isoPending.clear();
+  }
+
+  function initIsoWorker() {
+    if (!("Worker" in window)) {
+      isoWorkerFailed = true;
+      return;
+    }
+
+    try {
+      isoWorker = new Worker("js/iso-worker.js");
+      isoWorker.addEventListener("message", event => {
+        const message = event.data || {};
+        if (message.type === "ready") {
+          const warm = () => {
+            ["rail", "fly", "drive"].forEach(targetMode => {
+              getIsochrones(targetMode).catch(() => {});
+            });
+          };
+          if ("requestIdleCallback" in window) {
+            window.requestIdleCallback(warm, { timeout: 1500 });
+          } else {
+            setTimeout(warm, 800);
+          }
+          return;
+        }
+
+        const request = isoRequests.get(message.requestId);
+        if (!request) return;
+        isoRequests.delete(message.requestId);
+
+        if (message.type === "result") {
+          isoCache.set(request.key, message.paths);
+          request.resolve(message.paths);
+        } else {
+          request.reject(new Error(message.message || "Iso worker computation failed"));
+        }
+      });
+      isoWorker.addEventListener("error", event => {
+        failIsoWorker(event.error || new Error(event.message || "Iso worker crashed"));
+      });
+      isoWorker.postMessage({
+        type: "init",
+        geojson: chinaFC,
+        width,
+        height,
+        gridStep: GRID_STEP,
+        bandMaxes: BANDS.slice(0, -1).map(band => band.max),
+      });
+    } catch (error) {
+      failIsoWorker(error);
+    }
+  }
+
+  function requestIsoFromWorker(targetMode, key) {
+    const requestId = ++isoRequestId;
+    const promise = new Promise((resolve, reject) => {
+      isoRequests.set(requestId, { key, resolve, reject });
+      isoWorker.postMessage({
+        type: "compute",
+        requestId,
+        mode: targetMode,
+        anchors: isoAnchors(targetMode),
+        homeCoord: DATA.home.coord,
+      });
+    });
+    isoPending.set(key, promise);
+    promise.then(
+      () => { if (isoPending.get(key) === promise) isoPending.delete(key); },
+      () => { if (isoPending.get(key) === promise) isoPending.delete(key); },
+    );
+    return promise;
+  }
+
+  async function getIsochrones(targetMode) {
+    const key = isoCacheKey(targetMode);
+    if (isoCache.has(key)) return isoCache.get(key);
+    if (isoPending.has(key)) return isoPending.get(key);
+
+    if (isoWorker && !isoWorkerFailed) {
+      try {
+        return await requestIsoFromWorker(targetMode, key);
+      } catch {
+        // Worker 出错时继续走分片主线程兜底，保持模式切换可用。
+      }
+    }
+
+    const paths = await computeIsochronesChunked(targetMode);
+    isoCache.set(key, paths);
+    return paths;
+  }
+
   /* ---------- 城市贴纸 ---------- */
 
   function drawCities() {
@@ -300,12 +477,12 @@ const TravelMap = (() => {
         const [x, y] = projection(d.coord);
         return `translate(${x},${y})`;
       })
-      .on("click", (ev, d) => { ev.stopPropagation(); onCityClick(d); })
-      .on("mousemove", (ev, d) => showTip(ev, d))
-      .on("mouseleave", hideTip);
-
-    // 当前模式下不可达/无该方式的城市整体淡化
-    g.attr("opacity", d => doorToDoor(d, mode) == null ? 0.42 : 1);
+      .on("click", (ev, d) => { ev.stopPropagation(); onCityClick(d); });
+    citySelection = g;
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      g.on("mousemove", (ev, d) => showTip(ev, d))
+        .on("mouseleave", hideTip);
+    }
 
     // 加大命中区域：透明圆垫底
     g.append("circle")
@@ -319,15 +496,15 @@ const TravelMap = (() => {
       .append("g").attr("class", "sticker-lod")
       .append("g").attr("class", "sticker-bg");
 
-    bg.append("circle")
+    cityOutlineSelection = bg.append("circle")
+      .attr("class", "sticker-outline")
       .attr("r", 11)
       .attr("fill", "#fffdf6")
-      .attr("stroke", d => d3.color(bandColor(doorToDoor(d, mode) ?? HOURS(13))).darker(0.8))
       .attr("stroke-width", 2);
 
-    bg.append("circle")
+    cityFillSelection = bg.append("circle")
+      .attr("class", "sticker-fill")
       .attr("r", 11)
-      .attr("fill", d => bandColor(doorToDoor(d, mode) ?? HOURS(13)))
       .attr("opacity", 0.35);
 
     bg.append("text")
@@ -350,13 +527,24 @@ const TravelMap = (() => {
       .attr("font-size", 11.5)
       .text(d => d.name);
 
-    g.append("text")
+    cityTimeSelection = g.append("text")
       .attr("class", "city-time-tag")
       .attr("text-anchor", d => lpos(d).anchor)
       .attr("x", d => lpos(d).dx)
       .attr("y", d => { const p = lpos(d); return p.dy < 0 ? p.dy - 11 : p.dy + 11; })
-      .attr("font-size", 10.5)
-      .text(d => fmtMin(doorToDoor(d, mode)));
+      .attr("font-size", 10.5);
+
+    updateCitiesForMode(mode);
+  }
+
+  function updateCitiesForMode(targetMode) {
+    if (!citySelection) return;
+    citySelection.attr("opacity", d => doorToDoor(d, targetMode) == null ? 0.42 : 1);
+    cityOutlineSelection.attr("stroke", d =>
+      d3.color(bandColor(doorToDoor(d, targetMode) ?? HOURS(13))).darker(0.8));
+    cityFillSelection.attr("fill", d =>
+      bandColor(doorToDoor(d, targetMode) ?? HOURS(13)));
+    cityTimeSelection.text(d => fmtMin(doorToDoor(d, targetMode)));
   }
 
   /* ---------- 缩放视觉（LOD + 反向缩放） ----------
@@ -364,36 +552,68 @@ const TravelMap = (() => {
      k < DOT_K 所有地点统一缩成小图标，k < TIME_K 隐藏耗时只留名称。
      minK 城市（贴着出发地的小城）仍需放大到 minK 才展开。 */
   const DOT_K = 0.85, TIME_K = 1.8;
+  const LOD_BREAKPOINTS = [DOT_K, 1.4, 1.5, 1.6, 1.7, TIME_K];
 
-  function applyZoomStyles(k) {
-    const iconScale = 1 / Math.sqrt(k);
-    const textScale = 1 / k;
+  function cacheZoomItems() {
+    zoomItems = [];
+    rootG.select(".layer-cities")
+      .selectAll(".city-sticker, .home-marker")
+      .each(function (d) {
+        if (!d) return;
+        zoomItems.push({
+          data: d,
+          isHome: this.classList.contains("home-marker"),
+          stickerZoom: this.querySelector(".sticker-zoom"),
+          stickerLod: this.querySelector(".sticker-lod"),
+          hitCircle: this.querySelector(".hit-circle"),
+          label: this.querySelector(".city-label"),
+          time: this.querySelector(".city-time-tag"),
+        });
+      });
+  }
 
-    // 只作用于真实城市图层——模式切换的 .layer-ghost 克隆无 d3 数据,选中会抛错
-    rootG.select(".layer-cities").selectAll(".city-sticker, .home-marker").each(function (d) {
-      if (!d) return;
-      const sel = d3.select(this);
-      const [x, y] = projection(d.coord);
-      sel.attr("transform", `translate(${x},${y})`);
+  function lodBucket(k) {
+    let bucket = 0;
+    while (bucket < LOD_BREAKPOINTS.length && k >= LOD_BREAKPOINTS[bucket]) bucket++;
+    return bucket;
+  }
 
-      const isHome = sel.classed("home-marker");
-      const collapsed = !isHome && (k < DOT_K || (d.minK && k < d.minK));
-      const showName = isHome || !collapsed;
-      const showTime = !isHome && !collapsed && k >= TIME_K;
+  function applyZoomStyles(k, force = false) {
+    const scaleChanged = force || k !== lastZoomK;
+    if (scaleChanged) {
+      const iconTransform = `scale(${1 / Math.sqrt(k)})`;
+      const textTransform = `scale(${1 / k})`;
+      for (const item of zoomItems) {
+        item.stickerZoom?.setAttribute("transform", iconTransform);
+        item.hitCircle?.setAttribute("transform", iconTransform);
+        item.label?.setAttribute("transform", textTransform);
+        item.time?.setAttribute("transform", textTransform);
+      }
+      lastZoomK = k;
+    }
 
-      sel.select(".sticker-zoom")
-        .attr("transform", `scale(${iconScale})`);
-      sel.select(".sticker-lod")
-        .attr("transform", `scale(${collapsed ? 0.55 : 1})`);
-      sel.select(".hit-circle")
-        .attr("transform", `scale(${iconScale})`);
-      sel.select(".city-label")
-        .attr("opacity", showName ? 1 : 0)
-        .attr("transform", `scale(${textScale})`);
-      sel.select(".city-time-tag")
-        .attr("opacity", showTime ? 1 : 0)
-        .attr("transform", `scale(${textScale})`);
-    });
+    const bucket = lodBucket(k);
+    if (!force && bucket === lastLodBucket) return;
+    lastLodBucket = bucket;
+
+    for (const item of zoomItems) {
+      const collapsed = !item.isHome &&
+        (k < DOT_K || (item.data.minK && k < item.data.minK));
+      const showName = item.isHome || !collapsed;
+      const showTime = !item.isHome && !collapsed && k >= TIME_K;
+      item.stickerLod?.setAttribute("transform", `scale(${collapsed ? 0.55 : 1})`);
+      item.label?.setAttribute("opacity", showName ? 1 : 0);
+      item.time?.setAttribute("opacity", showTime ? 1 : 0);
+    }
+  }
+
+  function flushZoomFrame() {
+    zoomFrame = 0;
+    if (!pendingZoomTransform) return;
+    const transform = pendingZoomTransform;
+    pendingZoomTransform = null;
+    rootG.attr("transform", transform);
+    applyZoomStyles(transform.k);
   }
 
   function drawHome() {
@@ -456,36 +676,29 @@ const TravelMap = (() => {
 
   /* ---------- 模式切换 ---------- */
 
-  function setMode(m) {
+  async function setMode(m) {
+    if (!BANDS.length || !["best", "rail", "fly", "drive"].includes(m)) return;
+    if (m === mode && isoCache.has(isoCacheKey(m))) return isoCache.get(isoCacheKey(m));
+
     mode = m;
     hideTip();
+    updateCitiesForMode(m);
 
-    // 旧图层克隆成"幽灵层"淡出，新图层淡入 —— 真正的交叉淡化
-    const reduce = reduceMotion();
-    let ghosts = [];
-    if (!reduce) {
-      ghosts = [".layer-iso", ".layer-cities"].map(cls => {
-        const orig = rootG.select(cls).node();
-        const ghost = orig.cloneNode(true);
-        ghost.setAttribute("class", "layer-ghost");
-        ghost.style.pointerEvents = "none";
-        orig.parentNode.insertBefore(ghost, orig.nextSibling);
-        return ghost;
-      });
-    }
+    const requestId = ++modeRequestId;
+    const modeSwitch = document.getElementById("mode-switch");
+    const cached = isoCache.has(isoCacheKey(m));
+    if (!cached) modeSwitch?.setAttribute("aria-busy", "true");
 
-    drawIsochrones();
-    drawCities();
-    drawHome();
-    // 保持当前缩放
-    applyZoomStyles(d3.zoomTransform(svg.node()).k);
-
-    if (!reduce) {
-      // 幽灵层压在新层之上,淡出即溶解显出新状态。
-      // 先强制样式冲刷,确立"初始不透明度 1"的过渡起点,否则同帧置 0 会瞬跳
-      ghosts.forEach(g => void g.getBoundingClientRect());
-      ghosts.forEach(g => { g.style.opacity = 0; });
-      setTimeout(() => ghosts.forEach(g => g.remove()), 400);
+    try {
+      const paths = await getIsochrones(m);
+      if (requestId !== modeRequestId || mode !== m) return paths;
+      replaceIsoLayer(paths, true);
+      return paths;
+    } catch (error) {
+      console.error("[travel-maps] 等时圈计算失败:", error);
+      return null;
+    } finally {
+      if (requestId === modeRequestId) modeSwitch?.removeAttribute("aria-busy");
     }
   }
 
