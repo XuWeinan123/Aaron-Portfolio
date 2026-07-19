@@ -35,7 +35,9 @@ import { products, tools } from '../../data/products';
       <div class="collapse-inner">
       <ol class="product-list">
         {
-          products.map((p, i) => (
+          products.map((p, i) => {
+            const titleLink = p.links.find((link) => !link.href.startsWith('/'));
+            return (
             <li class="reveal" style={`--d:${0.06 * i}s`}>
               <article class="product-card card">
                 <img
@@ -48,7 +50,18 @@ import { products, tools } from '../../data/products';
                 />
                 <div class="product-body">
                   <div class="product-title">
-                    <h2>{p.name}</h2>
+                    <h2>
+                      {titleLink ? (
+                        <a
+                          href={titleLink.href}
+                          target="_blank"
+                          rel="noopener"
+                          class="product-name-link"
+                        >
+                          {p.name}
+                        </a>
+                      ) : p.name}
+                    </h2>
                     <span class="mono-sm en">{p.en}</span>
                   </div>
                   <p class="tagline">{p.tagline}</p>
@@ -74,7 +87,8 @@ import { products, tools } from '../../data/products';
                 </div>
               </article>
             </li>
-          ))
+            );
+          })
         }
       </ol>
       </div>
@@ -273,6 +287,20 @@ import { products, tools } from '../../data/products';
   .product-title h2 {
     font-size: clamp(19px, 2.4vw, 22px);
     letter-spacing: -0.01em;
+  }
+
+  .product-name-link {
+    color: inherit;
+    text-decoration: none;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    transition: color 0.2s ease, text-decoration-color 0.2s ease;
+  }
+
+  .product-name-link:hover {
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-decoration-color: var(--accent-border);
   }
 
   .product-title .en {

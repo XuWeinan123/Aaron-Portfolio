@@ -11,26 +11,32 @@ const TravelMap = (() => {
 
   // 等时色带（分钟阈值 + 水彩色）
   const BANDS = [
-    { max: HOURS(2),  color: "#f2837b", label: "2 小时内 · 说走就走" },
-    { max: HOURS(4),  color: "#f5b754", label: "2–4 小时 · 周末刚好" },
-    { max: HOURS(6),  color: "#a8c95c", label: "4–6 小时 · 小长假呀" },
-    { max: HOURS(8),  color: "#5fbcab", label: "6–8 小时 · 值得专程" },
-    { max: HOURS(12), color: "#7e9bd3", label: "8–12 小时 · 远方在召唤" },
-    { max: Infinity,  color: "#b39ad2", label: "12 小时以上 · 大冒险！" },
+    { max: HOURS(2),  color: "#f2837b", label: "说走就走" },
+    { max: HOURS(4),  color: "#f5b754", label: "周末刚好" },
+    { max: HOURS(6),  color: "#a8c95c", label: "小长假呀" },
+    { max: HOURS(8),  color: "#5fbcab", label: "值得专程" },
+    { max: HOURS(12), color: "#7e9bd3", label: "远方在召唤" },
+    { max: Infinity,  color: "#b39ad2", label: "大冒险！" },
   ];
 
   const ONWARD_SPEED_KMH = 65;     // 抵达枢纽后继续驾车的平均速度
   const GRID_STEP = 7;             // 等时场采样步长（像素）
+  const EFFECTS_OUT_MS = 90;       // 手势开始：先淡出，再彻底停用昂贵效果
+  const EFFECTS_IN_MS = 180;       // 手势结束：先恢复渲染，再柔和淡入
+  const MARKER_SETTLE_MS = 180;    // 城市贴纸在缩放结束后恢复恒定视觉尺寸
 
   let svg, rootG, projection, geoPath, zoomBehavior;
   let chinaFC, provinces, dashLine, mode = "best";
   let onCityClick = () => {};
   let width = 0, height = 0;
   let DATA; // 当前出发城市的数据集 { home, cities, anchors }
-  let chinaD = "", contourPath;
+  let chinaD = "", contourPath, wobbleDisplacement;
   let citySelection, cityOutlineSelection, cityFillSelection, cityTimeSelection;
   let zoomItems = [];
   let pendingZoomTransform = null, zoomFrame = 0, lastZoomK = NaN, lastLodBucket = -1;
+  let mapInteracting = false, interactionToken = 0;
+  let effectsToken = 0, effectsOffTimer = 0, effectsRestoreFrame = 0;
+  let markerSettleFrame = 0, markerSettleTimer = 0;
 
   const isoCache = new Map();
   const isoPending = new Map();
@@ -146,10 +152,12 @@ const TravelMap = (() => {
 
     zoomBehavior = d3.zoom()
       .scaleExtent([0.5, 18])
+      .on("start", beginMapInteraction)
       .on("zoom", ev => {
         pendingZoomTransform = ev.transform;
         if (!zoomFrame) zoomFrame = requestAnimationFrame(flushZoomFrame);
-      });
+      })
+      .on("end", endMapInteraction);
     svg.call(zoomBehavior).on("dblclick.zoom", null);
     applyZoomStyles(1, true);
 
@@ -165,18 +173,9 @@ const TravelMap = (() => {
     wobble.append("feTurbulence")
       .attr("type", "fractalNoise").attr("baseFrequency", "0.015")
       .attr("numOctaves", 3).attr("seed", 7).attr("result", "noise");
-    wobble.append("feDisplacementMap")
-      .attr("in", "SourceGraphic").attr("in2", "noise").attr("scale", 4);
-
-    // 水彩边缘（给等时圈）
-    const wc = defs.append("filter").attr("id", "watercolor")
-      .attr("x", "-8%").attr("y", "-8%").attr("width", "116%").attr("height", "116%");
-    wc.append("feTurbulence")
-      .attr("type", "fractalNoise").attr("baseFrequency", "0.022")
-      .attr("numOctaves", 4).attr("seed", 3).attr("result", "noise");
-    wc.append("feDisplacementMap")
-      .attr("in", "SourceGraphic").attr("in2", "noise").attr("scale", 14).attr("result", "disp");
-    wc.append("feGaussianBlur").attr("in", "disp").attr("stdDeviation", 1.2);
+    wobbleDisplacement = wobble.append("feDisplacementMap")
+      .attr("in", "SourceGraphic").attr("in2", "noise").attr("scale", 4)
+      .node();
 
     // 全国轮廓裁剪（等时圈不溢出国界/海岸线）。
     // 注意：必须合并为单条 path —— Chromium 对多条复杂子路径的
@@ -323,7 +322,6 @@ const TravelMap = (() => {
         .attr("d", regionD[i] + (inner || ""))
         .attr("fill-rule", "evenodd")
         .attr("class", "iso-band")
-        .attr("filter", "url(#watercolor)")
         .attr("fill", BANDS[i].color)
         .attr("opacity", 0.55);
     }
@@ -607,13 +605,111 @@ const TravelMap = (() => {
     }
   }
 
+  function transitionWobble(scale, duration) {
+    if (!wobbleDisplacement) return;
+    const displacement = d3.select(wobbleDisplacement).interrupt("map-effects");
+    if (!duration) {
+      displacement.attr("scale", scale);
+      return;
+    }
+    displacement.transition("map-effects")
+      .duration(duration)
+      .ease(d3.easeCubicOut)
+      .attr("scale", scale);
+  }
+
+  function suspendMapEffects() {
+    const token = ++effectsToken;
+    clearTimeout(effectsOffTimer);
+    cancelAnimationFrame(effectsRestoreFrame);
+    effectsRestoreFrame = 0;
+
+    svg.classed("map-effects-off", false)
+      .classed("map-effects-fading", true);
+
+    if (reduceMotion()) {
+      transitionWobble(0, 0);
+      svg.classed("map-effects-off", true);
+      return;
+    }
+
+    transitionWobble(0, EFFECTS_OUT_MS);
+    effectsOffTimer = setTimeout(() => {
+      if (token !== effectsToken || !mapInteracting) return;
+      svg.classed("map-effects-off", true);
+    }, EFFECTS_OUT_MS);
+  }
+
+  function restoreMapEffects() {
+    const token = ++effectsToken;
+    clearTimeout(effectsOffTimer);
+    effectsOffTimer = 0;
+
+    // 此时扰动强度和阴影透明度都已经归零，先重新接回效果不会闪变。
+    svg.classed("map-effects-off", false);
+
+    if (reduceMotion()) {
+      transitionWobble(4, 0);
+      svg.classed("map-effects-fading", false);
+      return;
+    }
+
+    effectsRestoreFrame = requestAnimationFrame(() => {
+      effectsRestoreFrame = 0;
+      if (token !== effectsToken || mapInteracting) return;
+      svg.classed("map-effects-fading", false);
+      transitionWobble(4, EFFECTS_IN_MS);
+    });
+  }
+
+  function beginMapInteraction() {
+    mapInteracting = true;
+    interactionToken++;
+    cancelAnimationFrame(markerSettleFrame);
+    markerSettleFrame = 0;
+    clearTimeout(markerSettleTimer);
+    markerSettleTimer = 0;
+    svg.classed("map-settling", false)
+      .classed("map-interacting", true);
+    suspendMapEffects();
+  }
+
+  function endMapInteraction(ev) {
+    if (zoomFrame) cancelAnimationFrame(zoomFrame);
+    zoomFrame = 0;
+
+    const transform = pendingZoomTransform || ev?.transform;
+    pendingZoomTransform = null;
+    if (transform) rootG.attr("transform", transform);
+
+    mapInteracting = false;
+    const token = interactionToken;
+    svg.classed("map-settling", true);
+
+    // 等浏览器确认 settling 样式后再一次性同步 190 个城市，避免恢复时跳变。
+    markerSettleFrame = requestAnimationFrame(() => {
+      markerSettleFrame = 0;
+      if (token !== interactionToken || mapInteracting) return;
+      if (transform) applyZoomStyles(transform.k);
+      svg.classed("map-interacting", false);
+      restoreMapEffects();
+
+      markerSettleTimer = setTimeout(() => {
+        if (token !== interactionToken || mapInteracting) return;
+        svg.classed("map-settling", false);
+        markerSettleTimer = 0;
+      }, MARKER_SETTLE_MS);
+    });
+  }
+
   function flushZoomFrame() {
     zoomFrame = 0;
     if (!pendingZoomTransform) return;
     const transform = pendingZoomTransform;
     pendingZoomTransform = null;
     rootG.attr("transform", transform);
-    applyZoomStyles(transform.k);
+    // 手势期间只移动整张地图；贴纸、命中区和文字在 end 时一次性同步。
+    if (!mapInteracting) applyZoomStyles(transform.k);
   }
 
   function drawHome() {
@@ -628,13 +724,13 @@ const TravelMap = (() => {
     const bg = g.append("g").attr("class", "sticker-zoom")
       .append("g").attr("class", "sticker-bg");
 
-    bg.append("circle").attr("class", "home-pulse")
+    bg.append("g").attr("class", "home-pulse-wrap")
+      .append("circle").attr("class", "home-pulse")
       .attr("r", 11).attr("fill", "none")
       .attr("stroke", "#e8606b").attr("stroke-width", 2);
 
-    bg.append("circle").attr("r", 11.5)
-      .attr("fill", "#e8606b").attr("stroke", "#fff8ec").attr("stroke-width", 2.5)
-      .attr("filter", "drop-shadow(1.5px 2.5px 1px rgba(74,63,53,.3))");
+    bg.append("circle").attr("class", "home-core").attr("r", 11.5)
+      .attr("fill", "#e8606b").attr("stroke", "#fff8ec").attr("stroke-width", 2.5);
 
     bg.append("text")
       .attr("text-anchor", "middle").attr("dy", "0.36em")
