@@ -77,7 +77,14 @@
   },
 ```
 
-门到门耗时由各数据文件头部的接驳常量自动合成。杭州端:`toRail 35 + railBuf 25`、`toAir 45 + airBuf 90`;上海端:`toRail 40(虹桥) + railBuf 25`、`toAir 50(两场折中) + airBuf 90`,fly 的 `dep` 覆盖口径:浦东国内 150、港澳台/国际经浦东 180。驾车超 4 小时每 2 小时加 15 分休息。
+门到门耗时由各数据文件头部的接驳常量自动合成。各出发端接驳常量:
+- 杭州:`toRail 35 + railBuf 25`、`toAir 45 + airBuf 90`
+- 上海:`toRail 40(虹桥) + railBuf 25`、`toAir 50(两场折中) + airBuf 90`,fly `dep` 覆盖:浦东国内 150、港澳台/国际经浦东 180
+- 北京:`toRail 45 + railBuf 25`、`toAir 60 + airBuf 90`(首都/大兴折中)
+- 广州:`toRail 40(广州南) + railBuf 25`、`toAir 55(白云) + airBuf 90`,广州东发车城际可 `dep: 55`
+- 深圳:`toRail 30(深圳北) + railBuf 25`、`toAir 50(宝安) + airBuf 90`,福田站发车 `dep: 45`
+
+驾车超 4 小时每 2 小时加 15 分休息。各城 `T` 表都按自身视角重新判断了 rail/fly/drive 的 null 结构和 recommend(如广深港高铁令香港从深圳/广州 fly=null、京广令长沙从广州改推 rail),不是照抄杭州版。
 
 ## 新增出发城市工作流
 
