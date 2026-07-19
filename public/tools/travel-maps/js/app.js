@@ -28,6 +28,7 @@
 
   // 出发城市切换：手账风 dropdown。选项由注册表生成，选中即换 URL 整页加载
   buildCityDropdown(DEPARTURES, from);
+  setupLegendToggle();
 
   const geojson = await fetch("data/china.json").then(r => r.json());
 
@@ -55,6 +56,32 @@
   // 关闭面板
   document.getElementById("panel-close").addEventListener("click", CityPanel.close);
   document.addEventListener("keydown", e => { if (e.key === "Escape") CityPanel.close(); });
+
+  /* ---- 时间图例：桌面默认展开，手机默认收起；用户操作后不再自动覆盖 ---- */
+  function setupLegendToggle() {
+    const legend = document.getElementById("legend");
+    const btn = document.getElementById("legend-toggle");
+    const label = btn?.querySelector(".legend-toggle-label");
+    if (!legend || !btn) return;
+
+    const phoneLayout = window.matchMedia("(max-width: 760px)");
+    let userChanged = false;
+    const setCollapsed = collapsed => {
+      legend.classList.toggle("collapsed", collapsed);
+      btn.setAttribute("aria-expanded", String(!collapsed));
+      btn.setAttribute("aria-label", collapsed ? "展开时间图例" : "收起时间图例");
+      if (label) label.textContent = collapsed ? "展开" : "收起";
+    };
+
+    setCollapsed(phoneLayout.matches);
+    btn.addEventListener("click", () => {
+      userChanged = true;
+      setCollapsed(!legend.classList.contains("collapsed"));
+    });
+    phoneLayout.addEventListener?.("change", event => {
+      if (!userChanged) setCollapsed(event.matches);
+    });
+  }
 
   /* ---- 出发城市 dropdown（选项来源 = DEPARTURES 注册表） ---- */
   function buildCityDropdown(registry, current) {

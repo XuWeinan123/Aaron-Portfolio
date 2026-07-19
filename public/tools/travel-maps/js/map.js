@@ -24,6 +24,7 @@ const TravelMap = (() => {
   const EFFECTS_OUT_MS = 90;       // 手势开始：先淡出，再彻底停用昂贵效果
   const EFFECTS_IN_MS = 180;       // 手势结束：先恢复渲染，再柔和淡入
   const MARKER_SETTLE_MS = 180;    // 城市贴纸在缩放结束后恢复恒定视觉尺寸
+  const PHONE_LAYOUT = window.matchMedia("(max-width: 760px)");
 
   let svg, rootG, projection, geoPath, zoomBehavior;
   let chinaFC, provinces, dashLine, mode = "best";
@@ -160,6 +161,9 @@ const TravelMap = (() => {
       .on("end", endMapInteraction);
     svg.call(zoomBehavior).on("dblclick.zoom", null);
     applyZoomStyles(1, true);
+    PHONE_LAYOUT.addEventListener?.("change", () => {
+      applyZoomStyles(Number.isFinite(lastZoomK) ? lastZoomK : 1, true);
+    });
 
     initIsoWorker();
   }
@@ -579,11 +583,13 @@ const TravelMap = (() => {
   function applyZoomStyles(k, force = false) {
     const scaleChanged = force || k !== lastZoomK;
     if (scaleChanged) {
-      const iconTransform = `scale(${1 / Math.sqrt(k)})`;
+      const inverseIconScale = 1 / Math.sqrt(k);
       const textTransform = `scale(${1 / k})`;
       for (const item of zoomItems) {
-        item.stickerZoom?.setAttribute("transform", iconTransform);
-        item.hitCircle?.setAttribute("transform", iconTransform);
+        // 手机只缩小目的地贴纸的视觉尺寸；Home 与透明命中区保持原尺寸。
+        const phoneScale = PHONE_LAYOUT.matches && !item.isHome ? 0.5 : 1;
+        item.stickerZoom?.setAttribute("transform", `scale(${inverseIconScale * phoneScale})`);
+        item.hitCircle?.setAttribute("transform", `scale(${inverseIconScale})`);
         item.label?.setAttribute("transform", textTransform);
         item.time?.setAttribute("transform", textTransform);
       }
