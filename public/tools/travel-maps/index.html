@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>出发吧打工人 · 旅行手账地图</title>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,12 +40,23 @@
   <div id="map-wrap">
     <svg id="map"></svg>
 
-    <aside id="legend" class="paper-card">
+    <aside id="legend" class="paper-card collapsed">
       <div class="washi washi-pink"></div>
-      <h3>🕰 门到门要多久？</h3>
-      <p class="legend-note">从<span id="legend-home">上海</span>市区出发，含去车站/机场、候车候机的<b>全部</b>时间</p>
-      <ul id="legend-bands"></ul>
-      <p class="legend-foot">基于 2024–2026 真实时刻表与导航数据研究整理 · 非实时</p>
+      <div class="legend-head">
+        <h3>
+          <span class="legend-title-full">🕰 门到门要多久？</span>
+          <span class="legend-title-short">🕰 时间图例</span>
+        </h3>
+        <button id="legend-toggle" type="button" aria-expanded="false" aria-controls="legend-content">
+          <span class="legend-toggle-label">展开</span>
+          <span class="legend-toggle-caret" aria-hidden="true">⌄</span>
+        </button>
+      </div>
+      <div id="legend-content" class="legend-content">
+        <p class="legend-note">从<span id="legend-home">上海</span>市区出发，含去车站/机场、候车候机的<b>全部</b>时间</p>
+        <ul id="legend-bands"></ul>
+        <p class="legend-foot">基于 2024–2026 真实时刻表与导航数据研究整理 · 非实时</p>
+      </div>
     </aside>
 
     <div id="hover-tip" class="hidden"></div>

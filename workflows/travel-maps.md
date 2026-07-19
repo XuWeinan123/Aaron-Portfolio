@@ -3,6 +3,9 @@
 「出发吧打工人！」，创意致敬 https://travel-maps.nazha.co/ (原版「从杭州出发」，静态站托管在 Vercel，未找到公开仓库；页面右下角已附致谢链接)。
 本站版本位于 `public/tools/travel-maps/`，为独立实现并扩展：**多出发城市**(上海/北京/广州/深圳/杭州，默认上海)+ 逐城攻略手账。纯静态壳，从 /products/ 列表以新标签页打开，**不遵守主站设计规范**(见 AGENTS.md 硬性规则 2)。
 
+手机与桌面的城市密度、图例默认状态、安全区和缩放控件差异见
+[`public/tools/travel-maps/RESPONSIVE.md`](../public/tools/travel-maps/RESPONSIVE.md)。
+
 ## 出发城市与 URL
 
 - 出发城市通过 `?from=<slug>` 表达(如 `/tools/travel-maps/?from=hangzhou`)，可直接收藏/分享。

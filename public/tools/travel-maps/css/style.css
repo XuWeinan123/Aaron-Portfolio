@@ -18,13 +18,18 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html, body { height: 100%; overflow: hidden; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
 
 body {
+  display: flex; flex-direction: column;
+  min-height: 100vh; height: 100vh;
   font-family: var(--font-body);
   color: var(--ink);
   background: var(--paper);
   transition: opacity .2s ease;
+}
+@supports (height: 100dvh) {
+  body { min-height: 100dvh; height: 100dvh; }
 }
 /* 切换出发城市:离场淡出(app.js 加类,200ms 后跳转) */
 body.page-leave { opacity: 0; }
@@ -40,9 +45,13 @@ body.page-leave { opacity: 0; }
 /* ---------------- 顶栏 ---------------- */
 #topbar {
   position: relative; z-index: 20;
+  flex: none;
   display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 10px;
   padding: 14px 26px 10px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  padding-right: max(26px, calc(env(safe-area-inset-right) + 16px));
+  padding-left: max(26px, calc(env(safe-area-inset-left) + 16px));
 }
 
 .brand { display: flex; align-items: center; gap: 12px; }
@@ -140,7 +149,10 @@ body.page-leave { opacity: 0; }
 .mb-icon { margin-right: 4px; }
 
 /* ---------------- 舞台 ---------------- */
-#stage { position: relative; z-index: 10; height: calc(100% - 110px); }
+#stage {
+  position: relative; z-index: 10;
+  flex: 1 1 auto; min-height: 0; height: auto;
+}
 
 #map-wrap { position: absolute; inset: 0; }
 
@@ -249,11 +261,38 @@ body.page-leave { opacity: 0; }
 }
 
 #legend {
-  position: absolute; left: 22px; bottom: 18px; width: 250px;
-  padding: 18px 16px 12px; transform: rotate(-1.2deg);
+  position: absolute;
+  left: max(22px, calc(env(safe-area-inset-left) + 10px));
+  bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px));
+  width: 250px; padding: 18px 16px 12px; transform: rotate(-1.2deg);
+  transition: width .24s ease, padding .24s ease, box-shadow .18s ease;
 }
 
-#legend h3 { font-family: var(--font-cute); font-size: 17px; margin-bottom: 4px; }
+.legend-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#legend h3 { font-family: var(--font-cute); font-size: 17px; margin: 0; white-space: nowrap; }
+.legend-title-short { display: none; }
+.legend-content {
+  max-height: 280px; opacity: 1; overflow: hidden; visibility: visible;
+  transition: max-height .24s ease, opacity .16s ease, visibility 0s;
+}
+#legend-toggle {
+  flex: none; display: inline-flex; align-items: center; gap: 3px;
+  border: 0; border-radius: 999px; padding: 3px 6px;
+  background: transparent; color: var(--ink-soft); cursor: pointer;
+  font-family: var(--font-cute); font-size: 11px;
+  transition: background .12s ease, color .12s ease, transform .12s ease;
+}
+#legend-toggle:hover { background: #f4ead2; color: var(--ink); }
+#legend-toggle:active { transform: scale(.94); }
+.legend-toggle-caret { display: inline-block; transition: transform .2s ease; }
+#legend.collapsed { width: 150px; padding: 12px 12px 9px; }
+#legend.collapsed .legend-title-full { display: none; }
+#legend.collapsed .legend-title-short { display: inline; }
+#legend.collapsed .legend-content {
+  max-height: 0; opacity: 0; visibility: hidden;
+  transition: max-height .24s ease, opacity .12s ease, visibility 0s .24s;
+}
+#legend.collapsed .legend-toggle-caret { transform: rotate(-90deg); }
 .legend-note { font-size: 12px; color: var(--ink-soft); line-height: 1.5; margin-bottom: 8px; }
 #legend-bands { list-style: none; }
 #legend-bands li {
@@ -294,7 +333,9 @@ body.page-leave { opacity: 0; }
 
 /* ---------------- 城市手账面板 ---------------- */
 #panel {
-  position: absolute; top: 6px; right: 14px; bottom: 12px;
+  position: absolute; top: 6px;
+  right: max(14px, calc(env(safe-area-inset-right) + 8px));
+  bottom: max(12px, calc(env(safe-area-inset-bottom) + 8px));
   width: min(430px, 92vw); z-index: 40;
   transition: transform .35s cubic-bezier(.2,.9,.3,1.1), opacity .3s;
 }
@@ -408,9 +449,13 @@ body.page-leave { opacity: 0; }
 /* ---------------- 底部 ---------------- */
 #credit {
   position: relative; z-index: 20;
+  flex: none;
   display: flex; justify-content: space-between; align-items: baseline;
   gap: 16px; flex-wrap: wrap;
   padding: 8px 26px; font-size: 11px; color: #a3937e;
+  padding-right: max(26px, calc(env(safe-area-inset-right) + 16px));
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  padding-left: max(26px, calc(env(safe-area-inset-left) + 16px));
   font-family: var(--font-body);
 }
 .credit-thanks { text-align: right; margin-left: auto; }
@@ -422,7 +467,10 @@ body.page-leave { opacity: 0; }
 
 /* ---------------- 缩放控件（Phosphor Icons） ---------------- */
 #zoom-ctrl {
-  position: absolute; right: 16px; bottom: 14px; z-index: 30;
+  position: absolute;
+  right: max(16px, calc(env(safe-area-inset-right) + 10px));
+  bottom: max(14px, calc(env(safe-area-inset-bottom) + 10px));
+  z-index: 30;
   display: flex; flex-direction: column; gap: 8px;
 }
 /* 城市详情 panel 打开时让位隐藏 */
@@ -448,12 +496,33 @@ body.page-leave { opacity: 0; }
   #map.map-interacting .city-label,
   #map.map-interacting .city-time-tag,
   #map.map-settling .sticker-zoom { transition: none; }
+  #legend, .legend-content, #legend-toggle, .legend-toggle-caret { transition: none; }
   .home-pulse { animation: none; opacity: 0; }
   .root { animation: none; }
 }
 
 /* 手机适配 */
 @media (max-width: 760px) {
-  #legend { width: 200px; left: 10px; bottom: 10px; padding: 14px 12px 10px; }
-  #panel { right: 6px; left: 6px; width: auto; }
+  #legend {
+    width: 200px;
+    left: max(10px, calc(env(safe-area-inset-left) + 8px));
+    bottom: max(10px, calc(env(safe-area-inset-bottom) + 8px));
+    padding: 14px 12px 10px;
+  }
+  #legend.collapsed { width: 142px; padding: 10px 10px 7px; }
+  #panel {
+    right: max(6px, calc(env(safe-area-inset-right) + 6px));
+    left: max(6px, calc(env(safe-area-inset-left) + 6px));
+    bottom: max(8px, calc(env(safe-area-inset-bottom) + 6px));
+    width: auto;
+  }
+  #zoom-ctrl {
+    right: max(10px, calc(env(safe-area-inset-right) + 8px));
+    bottom: max(10px, calc(env(safe-area-inset-bottom) + 8px));
+  }
+  #zoom-in, #zoom-out { display: none; }
+  #credit {
+    gap: 3px 10px; padding-top: 4px; padding-bottom: max(4px, env(safe-area-inset-bottom));
+    font-size: 9px; line-height: 1.35;
+  }
 }
