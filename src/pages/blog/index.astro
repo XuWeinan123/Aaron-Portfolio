@@ -1,0 +1,336 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { formatDate, yearOf } from '../../utils';
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime()
+);
+
+// 分类计数（按数量排序）
+const catCount = new Map<string, number>();
+for (const p of posts) {
+  for (const c of p.data.categories) {
+    catCount.set(c, (catCount.get(c) ?? 0) + 1);
+  }
+}
+const categories = [...catCount.entries()].sort((a, b) => b[1] - a[1]);
+
+// 按年分组
+const byYear = new Map<string, typeof posts>();
+for (const p of posts) {
+  const y = yearOf(p.data.date);
+  if (!byYear.has(y)) byYear.set(y, []);
+  byYear.get(y)!.push(p);
+}
+const years = [...byYear.entries()];
+---
+
+<Base
+  title="博客 - 徐炜楠 Aaron Xu"
+  description="徐炜楠的博客：设计、开发与 AI 的研究笔记，从 2015 到现在。"
+>
+  <div class="blog-page container">
+    <header class="blog-head">
+      <div class="mono-label reveal">Blog · Since 2015</div>
+      <h1 class="display reveal" style="--d:.05s">研究<span class="accent-text">笔记</span>.</h1>
+      <p class="lead reveal" style="--d:.1s">
+        设计、开发与 AI 的长期记录 —— 从交互设计入行时的实习日志，到如今的 AI
+        工作流研究，共 {posts.length} 篇。
+      </p>
+    </header>
+
+    <div class="filters reveal" role="group" aria-label="按分类筛选">
+      <button class="chip filter on" type="button" data-cat="" aria-pressed="true">
+        全部 <span class="count mono-sm">{posts.length}</span>
+      </button>
+      {
+        categories.map(([cat, count]) => (
+          <button class="chip filter" type="button" data-cat={cat} aria-pressed="false">
+            {cat} <span class="count mono-sm">{count}</span>
+          </button>
+        ))
+      }
+    </div>
+
+    <div class="post-list">
+      {
+        years.map(([year, list]) => (
+          <section class="year-group" data-year={year}>
+            <div class="year mono-sm" aria-hidden="true">{year}</div>
+            <ol>
+              {list.map((post) => (
+                <li
+                  class="row-wrap"
+                  data-cats={post.data.categories.join('|')}
+                >
+                  <a class="row" href={`/blog/${post.id}/`}>
+                    <time class="mono-sm" datetime={post.data.date.toISOString()}>
+                      {formatDate(post.data.date)}
+                    </time>
+                    <div class="row-main">
+                      <span class="row-title">{post.data.title}</span>
+                      <span class="row-excerpt">{post.data.excerpt}</span>
+                    </div>
+                    <div class="row-side">
+                      {post.data.categories[0] && (
+                        <span class="mono-sm row-cat">{post.data.categories[0]}</span>
+                      )}
+                      <span class="mono-sm row-min">{post.data.minutes} min</span>
+                    </div>
+                    <span class="row-arr" aria-hidden="true">→</span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))
+      }
+    </div>
+
+    <p class="empty mono-sm" hidden>该分类下暂无文章。</p>
+  </div>
+</Base>
+
+<script>
+  // 分类筛选（客户端，不改路由）
+  const filters = [...document.querySelectorAll<HTMLButtonElement>('.filter')];
+  const rows = [...document.querySelectorAll<HTMLElement>('.row-wrap')];
+  const groups = [...document.querySelectorAll<HTMLElement>('.year-group')];
+  const empty = document.querySelector<HTMLElement>('.empty');
+
+  const apply = (cat: string) => {
+    let visible = 0;
+    for (const row of rows) {
+      const show = !cat || (row.dataset.cats ?? '').split('|').includes(cat);
+      row.hidden = !show;
+      if (show) visible++;
+    }
+    for (const g of groups) {
+      g.hidden = ![...g.querySelectorAll<HTMLElement>('.row-wrap')].some((r) => !r.hidden);
+    }
+    if (empty) empty.hidden = visible > 0;
+  };
+
+  for (const btn of filters) {
+    btn.addEventListener('click', () => {
+      filters.forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+      apply(btn.dataset.cat ?? '');
+    });
+  }
+</script>
+
+<style>
+  .blog-page {
+    padding-top: clamp(112px, 15vw, 168px);
+  }
+
+  .blog-head {
+    margin-bottom: clamp(36px, 5vw, 56px);
+  }
+
+  .blog-head .mono-label {
+    display: block;
+    margin-bottom: 22px;
+  }
+
+  .blog-head h1 {
+    margin-bottom: 22px;
+  }
+
+  .blog-head .lead {
+    max-width: 52ch;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    padding-bottom: 26px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+
+  .filter {
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease,
+      transform 0.15s var(--ease-out);
+  }
+
+  .filter:active {
+    transform: scale(0.96);
+  }
+
+  .filter:hover {
+    border-color: var(--text-3);
+  }
+
+  .filter.on {
+    border-color: var(--accent);
+    color: var(--accent-strong);
+    background: var(--surface-accent);
+  }
+
+  .filter .count {
+    color: var(--text-mono);
+    font-size: 10.5px;
+  }
+
+  .filter.on .count {
+    color: var(--accent-strong);
+  }
+
+  .year-group {
+    position: relative;
+    padding-top: 26px;
+  }
+
+  .year {
+    position: sticky;
+    top: 72px;
+    float: left;
+    color: var(--text-mono);
+    letter-spacing: 0.14em;
+    font-size: 13px;
+    width: 64px;
+  }
+
+  .year-group ol {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 clamp(72px, 10vw, 96px);
+  }
+
+  @media (max-width: 640px) {
+    .year {
+      position: static;
+      float: none;
+      width: auto;
+      margin-bottom: 6px;
+    }
+
+    .year-group ol {
+      padding-left: 0;
+    }
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) auto 20px;
+    gap: clamp(14px, 2.5vw, 28px);
+    align-items: baseline;
+    padding: 17px 6px;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    transition: background-color 0.2s ease;
+  }
+
+  .row:hover {
+    background: color-mix(in oklch, var(--surface) 70%, transparent);
+  }
+
+  .row:active {
+    background: color-mix(in oklch, var(--surface) 45%, transparent);
+  }
+
+  .row time {
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+
+  .row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .row-title {
+    font-size: 16.5px;
+    font-weight: 550;
+    letter-spacing: -0.01em;
+    line-height: 1.45;
+    transition: color 0.2s ease;
+  }
+
+  .row:hover .row-title {
+    color: var(--accent-strong);
+  }
+
+  .row-excerpt {
+    font-size: 13px;
+    color: var(--text-3);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .row-side {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    white-space: nowrap;
+  }
+
+  .row-cat {
+    color: var(--accent-strong);
+  }
+
+  .row-min {
+    color: var(--text-mono);
+  }
+
+  .row-arr {
+    color: var(--text-3);
+    transition: transform 0.25s var(--ease-out), color 0.2s ease;
+  }
+
+  .row:hover .row-arr {
+    color: var(--accent-strong);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .row:hover .row-arr {
+      transform: translateX(4px);
+    }
+  }
+
+  @media (max-width: 720px) {
+    .row {
+      grid-template-columns: minmax(0, 1fr) 20px;
+      grid-template-areas:
+        'time arr'
+        'main arr'
+        'side arr';
+    }
+
+    .row time {
+      grid-area: time;
+    }
+
+    .row-main {
+      grid-area: main;
+    }
+
+    .row-side {
+      grid-area: side;
+    }
+
+    .row-arr {
+      grid-area: arr;
+      align-self: center;
+    }
+  }
+
+  .empty {
+    padding: 40px 0;
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+  }
+</style>

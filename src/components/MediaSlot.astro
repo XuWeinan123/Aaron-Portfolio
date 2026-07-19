@@ -1,0 +1,28 @@
+---
+/**
+ * 媒体占位组件:真实图片需从 Figma 导出后替换。
+ * 沿用 ds 原型「▢ 替换为真实截图」的斜纹占位样式，
+ * node 为 Figma 节点 ID,方便对照 figma/content 的 Media Placeholders 清单导出。
+ */
+interface Props {
+  label: string;
+  node?: string;
+  ratio?: string; // 例如 "16 / 9"
+  class?: string;
+}
+const { label, node, ratio = '16 / 9', class: className } = Astro.props;
+---
+
+<figure class:list={['media-slot', className]} style={`aspect-ratio: ${ratio};`}>
+  <span class="tag">
+    <span>▢ {label}</span>
+    {node && <span class="node">Figma {node} · 待替换</span>}
+  </span>
+</figure>
+
+<style>
+  figure {
+    margin: 0;
+    width: 100%;
+  }
+</style>

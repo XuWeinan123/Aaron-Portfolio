@@ -1,0 +1,632 @@
+---
+import CaseLayout from '../../layouts/CaseLayout.astro';
+import SectionHead from '../../components/SectionHead.astro';
+import MediaSlot from '../../components/MediaSlot.astro';
+
+const catalog = [
+  '全设计 / 开发过程梳理',
+  '使用 ComfyUI 完成 AI 绘图 Agent 搭建',
+  'What else?',
+];
+
+const research = [
+  {
+    title: '确定用户画像',
+    body: '每次设计我都习惯从用户画像开始。即使画像构建得不严谨，也能让我在设计中与「它」对话，避免陷入自以为是的设计。',
+  },
+  {
+    title: '同理心地图',
+    body: '如有条件，在用户画像的基础上，我会通过同理心地图这个工具进一步挖掘用户的内心，让我心里的用户更加具体。',
+  },
+  {
+    title: '用户旅程地图',
+    body: '沿用户的真实使用旅途梳理触点与情绪，为核心页面的设计提供依据。',
+  },
+];
+
+const personaQuotes = [
+  'I need a platform that delivers licensed, high-quality manga without ads.',
+  'Personalized recommendations are key for me.',
+  'Cross-device syncing and offline reading are essential.',
+  'I enjoy discussing manga with other enthusiasts.',
+];
+
+const buildFlow = [
+  { title: '原型验证', body: '做个简易程序来体验技术。' },
+  { title: '头脑风暴', body: '基于原理，畅想创新点。' },
+  { title: '技术分析', body: '了解底层技术的基本原理。' },
+  { title: '设计核心页面', body: '基于用户旅途设计页面。' },
+  { title: '分析并完成组件', body: '根据页面拆分组件并实现。' },
+  { title: '开发，不带停的', body: '不停地开发并迭代吧！' },
+];
+
+const comfySteps = [
+  '尝试理解画面中的元素。',
+  '将原图处理成控制条件。',
+  'AI 重绘生成新图片。',
+];
+
+const d2cFlow = ['通过插件转为糙代码', '借助 AI 优化代码质量', '代码干净又整洁了！'];
+
+const aiTools = [
+  { name: 'UX Pilot', body: '快速出图，验证想法。', node: '539:9211' },
+  { name: 'Dify', body: '组建本地知识库。', node: '539:9214' },
+  { name: 'Deep Research', body: '快速了解新领域。', node: '539:9217' },
+];
+---
+
+<CaseLayout
+  title="漫漫书架 Comic&Manga - 案例 · 徐炜楠"
+  description="围绕 ComfyUI 生图能力，自己 Design 并 Code 的 iPad 漫画应用。App Store 4.8 分。"
+  index="CASE 02"
+  category="独立设计 & 开发产品"
+  heading="漫漫书架 Comic&Manga"
+  summary="围绕 ComfyUI 生图能力，自己 Design 并 Code 的 iPad 漫画应用，面向漫画爱好者，定位于漫画的收藏阅读场景。用户可以借助 AI 绘图能力，将任意漫画页面转变为特定的风格，进一步强化收藏性质。<br/><br/>通过这次独立开发，不仅加深了我对于 AI Agent 的理解和使用，更重要的是，通过结合 AI 我实现了 Design 到 Code 的进一步打通，大大减少了这两方面的工作难度。"
+  meta={[
+    { label: 'Role', value: '独立设计 + 独立开发' },
+    { label: 'Platform', value: 'iPad App · 已上架 App Store' },
+    { label: 'Rating', value: '★ 4.8 / 5.0' },
+    { label: 'Stack', value: 'SwiftUI · ComfyUI' },
+  ]}
+  slug="comic-manga"
+>
+  <!-- 概览 -->
+  <div class="container case-section">
+    <div class="overview-media">
+      <div class="reveal"><MediaSlot label="App 截图 · 书架" node="539:9342" ratio="4 / 3" /></div>
+      <div class="reveal" style="--d:.08s">
+        <MediaSlot label="App 截图 · 阅读" node="539:9343" ratio="4 / 3" />
+      </div>
+      <div class="reveal" style="--d:.16s">
+        <MediaSlot label="App 截图 · AI 重绘" node="539:9344" ratio="4 / 3" />
+      </div>
+    </div>
+    <div class="truth-note reveal">
+      <span class="mono-label">Note</span>
+      <p>章节中所有页面均为真实实现效果，与设计稿 <strong>100%</strong> 一致。</p>
+    </div>
+  </div>
+
+  <!-- 01 Motivation -->
+  <section id="motivation" class="container case-section">
+    <SectionHead num="01" zh="初衷" en="Motivation" />
+    <div class="motive-grid">
+      <div class="motive-text reveal">
+        <p>
+          我本身是个漫画爱好者，不过之前从深圳搬到杭州时不得已卖掉不少珍藏，这就让我有了个开发电子漫画收藏
+          APP 的想法。
+        </p>
+        <p>
+          我想打造一个既还原实体阅读感受，又能利用 AI
+          轻松进行二次创作来让收藏变得更有趣的平台。
+        </p>
+        <p>
+          同时，我希望把自己这些年对设计的摸索 —— 方法论之类的 ——
+          都融入其中。我还希望后面能借助这个 APP 来做一些 AI 方面的尝试，来更好地理解
+          AI。
+        </p>
+        <ol class="catalog">
+          <div class="mono-label catalog-title">Content Catalog</div>
+          {
+            catalog.map((c, i) => (
+              <li>
+                <span class="mono-accent">{String(i + 1).padStart(2, '0')}</span>
+                {c}
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+      <div class="motive-media reveal" style="--d:.1s">
+        <MediaSlot label="iPad 实机视觉" node="539:9296" ratio="4 / 3" />
+        <div class="motive-media-pair">
+          <MediaSlot label="iPad 视觉 · 书页" node="539:9299" ratio="1 / 1" />
+          <MediaSlot label="iPad 视觉 · 收藏" node="539:9302" ratio="1 / 1" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 Design & Code 过程 -->
+  <section id="process" class="container case-section">
+    <SectionHead num="02" zh="设计与开发过程" en="Progress for Design & Code" />
+
+    <h3 class="sub-h reveal">用户研究与定义</h3>
+    <div class="research-grid">
+      {
+        research.map((r, i) => (
+          <div class="card research-card reveal" style={`--d:${i * 0.07}s`}>
+            <h4>{r.title}</h4>
+            <p>{r.body}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="persona reveal">
+      <div class="mono-label">Persona Voices · 来自用户画像</div>
+      <div class="quotes">
+        {
+          personaQuotes.map((q, i) => (
+            <blockquote class="reveal" style={`--d:${i * 0.06}s`}>
+              <span aria-hidden="true">“</span>{q}<span aria-hidden="true">”</span>
+            </blockquote>
+          ))
+        }
+      </div>
+    </div>
+
+    <h3 class="sub-h reveal">Design & Build Flow</h3>
+    <div class="flow-grid">
+      {
+        buildFlow.map((f, i) => (
+          <div class="card flow-card reveal" style={`--d:${i * 0.06}s`}>
+            <span class="mono-accent">{String(i + 1).padStart(2, '0')}</span>
+            <div>
+              <h4>{f.title}</h4>
+              <p>{f.body}</p>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="media-pair">
+      <div class="reveal"><MediaSlot label="设计过程视觉" node="539:9284" ratio="4 / 3" /></div>
+      <div class="reveal" style="--d:.08s">
+        <MediaSlot label="组件拆分视觉" node="539:9286" ratio="4 / 3" />
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 ComfyUI（深色带） -->
+  <section id="comfyui" class="container case-section">
+    <div class="band comfy-band reveal">
+      <div class="band-head">
+        <span class="mono-accent num">03</span>
+        <span class="band-zh">AI Agent</span>
+        <span class="mono-label">Build AI Agent with ComfyUI</span>
+      </div>
+      <h2 class="h-section">用 ComfyUI 搭建 AI 绘图 Agent</h2>
+
+      <div class="comfy-steps">
+        {
+          comfySteps.map((s, i) => (
+            <>
+              <div class="comfy-step reveal" style={`--d:${i * 0.08}s`}>
+                <span class="mono-sm step-idx">{String(i + 1).padStart(2, '0')}</span>
+                <p>{s}</p>
+              </div>
+              {i < comfySteps.length - 1 && <span class="comfy-arr" aria-hidden="true">→</span>}
+            </>
+          ))
+        }
+      </div>
+
+      <div class="comfy-example mono-sm">🌰 例子：黑白漫画上色 & 转绘真人</div>
+
+      <div class="comfy-media">
+        <div class="workflow reveal">
+          <MediaSlot label="ComfyUI 工作流全景" node="539:9226" ratio="21 / 9" />
+        </div>
+        <div class="outputs">
+          <div class="reveal"><MediaSlot label="输出 · 上色" node="539:9250" ratio="3 / 4" /></div>
+          <div class="reveal" style="--d:.07s">
+            <MediaSlot label="输出 · 风格化" node="539:9254" ratio="3 / 4" />
+          </div>
+          <div class="reveal" style="--d:.14s">
+            <MediaSlot label="输出 · 转绘真人" node="539:9256" ratio="3 / 4" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 What else -->
+  <section id="what-else" class="container case-section">
+    <SectionHead num="04" zh="额外收获" en="What Else Have I Got?" />
+
+    <div class="else-block reveal">
+      <h3>进一步尝试了「设计 👉 代码」</h3>
+      <p class="else-body">
+        在自己更加熟悉的 Swift
+        语言中，我完整地尝试了将设计稿直接转化代码这条路。验证了在规范使用组件的情况下，设计稿可以直接生成高质量代码。
+      </p>
+      <div class="d2c-flow">
+        {
+          d2cFlow.map((step, i) => (
+            <>
+              <span class="d2c-step" style={`--d:${i * 0.07}s`}>{step}</span>
+              {i < d2cFlow.length - 1 && <span class="d2c-arr" aria-hidden="true">→</span>}
+            </>
+          ))
+        }
+      </div>
+    </div>
+
+    <div class="else-block reveal">
+      <h3>不断挑战 AI 极限，加深了对于 AI 的理解与运用</h3>
+      <p class="else-body">
+        在制作 APP
+        的过程中，不断碰到了各种挑战，比如对陌生网络协议的运用，复杂算法的阅读与理解等。在这个过程中我不断地将问题抛给
+        AI 寻求解答，更好地掌握了与 AI 沟通的方式，并将更多的 AI
+        工具融入到了自己的工作生活中。
+      </p>
+      <div class="tools-grid">
+        {
+          aiTools.map((t, i) => (
+            <div class="card tool-card reveal" style={`--d:${i * 0.07}s`}>
+              <MediaSlot label={`${t.name} 截图`} node={t.node} ratio="16 / 10" />
+              <div class="tool-body">
+                <h4 class="mono-sm">{t.name}</h4>
+                <p>{t.body}</p>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- 「下一个案例」卡由 CaseLayout 按 cases.ts 顺序自动生成 -->
+</CaseLayout>
+
+<style>
+  .overview-media {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 16px;
+  }
+
+  .truth-note {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    margin-top: 20px;
+    border: 1px solid var(--accent-border);
+    background: var(--surface-accent);
+    border-radius: var(--radius);
+    padding: 16px 22px;
+  }
+
+  .truth-note .mono-label {
+    color: var(--accent-strong);
+  }
+
+  .truth-note p {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  /* Motivation */
+  .motive-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: clamp(28px, 5vw, 64px);
+    align-items: start;
+  }
+
+  @media (max-width: 780px) {
+    .motive-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .motive-text p {
+    color: var(--text-2);
+    margin-bottom: 1em;
+    max-width: 58ch;
+  }
+
+  .catalog {
+    list-style: none;
+    margin: 34px 0 0;
+    padding: 0;
+  }
+
+  .catalog-title {
+    margin-bottom: 8px;
+  }
+
+  .catalog li {
+    display: flex;
+    gap: 16px;
+    align-items: baseline;
+    padding: 14px 2px;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 15.5px;
+    font-weight: 500;
+  }
+
+  .catalog li:first-of-type {
+    border-top: 1px solid var(--border);
+  }
+
+  .motive-media {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .motive-media-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  /* Research */
+  .sub-h {
+    font-size: 23px;
+    margin-bottom: 22px;
+  }
+
+  .research-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+    gap: 14px;
+    margin-bottom: 34px;
+  }
+
+  .research-card {
+    padding: 26px 26px 28px;
+  }
+
+  .research-card h4 {
+    font-size: 17px;
+    margin-bottom: 10px;
+  }
+
+  .research-card p {
+    font-size: 14px;
+    color: var(--text-2);
+  }
+
+  .persona {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 26px 28px 28px;
+    margin-bottom: 52px;
+  }
+
+  .persona .mono-label {
+    margin-bottom: 18px;
+  }
+
+  .quotes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 12px;
+  }
+
+  .quotes blockquote {
+    margin: 0;
+    padding: 16px 18px;
+    border: 1px solid var(--border-subtle);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: var(--surface-2);
+    font-size: 13.5px;
+    font-style: italic;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  .flow-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+    gap: 14px;
+    margin-bottom: 34px;
+  }
+
+  .flow-card {
+    padding: 22px 22px;
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+  }
+
+  .flow-card .mono-accent {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .flow-card h4 {
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
+  .flow-card p {
+    font-size: 13px;
+    color: var(--text-3);
+  }
+
+  .media-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    gap: 16px;
+  }
+
+  /* ComfyUI band */
+  .comfy-band {
+    padding: clamp(36px, 5.5vw, 68px) clamp(24px, 5vw, 64px);
+  }
+
+  .band-head {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--band-border);
+    margin-bottom: 44px;
+  }
+
+  .band-head .num {
+    color: var(--band-accent);
+  }
+
+  .band-zh {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--band-text-2);
+  }
+
+  .comfy-band h2 {
+    color: var(--band-text);
+    margin-bottom: 36px;
+  }
+
+  .comfy-steps {
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+  }
+
+  .comfy-step {
+    flex: 1;
+    min-width: 200px;
+    border: 1px solid var(--band-border);
+    border-radius: var(--radius);
+    background: var(--band-surface);
+    padding: 20px 22px;
+  }
+
+  .comfy-step .step-idx {
+    display: block;
+    color: var(--band-accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+
+  .comfy-step p {
+    color: var(--band-text-2);
+    font-size: 14.5px;
+  }
+
+  .comfy-arr {
+    align-self: center;
+    color: var(--band-text-3);
+    font-size: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .comfy-arr {
+      display: none;
+    }
+  }
+
+  .comfy-example {
+    color: var(--band-accent-2);
+    letter-spacing: 0.04em;
+    margin-bottom: 22px;
+  }
+
+  .comfy-media .workflow {
+    margin-bottom: 16px;
+  }
+
+  .outputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+    gap: 14px;
+  }
+
+  /* 深色带内的占位图适配 */
+  .comfy-band :global(.media-slot) {
+    border-color: var(--band-border);
+    background: repeating-linear-gradient(
+      135deg,
+      oklch(0.23 0.012 264),
+      oklch(0.23 0.012 264) 11px,
+      oklch(0.255 0.012 264) 11px,
+      oklch(0.255 0.012 264) 22px
+    );
+  }
+
+  .comfy-band :global(.media-slot .tag) {
+    background: var(--band-surface);
+    border-color: var(--band-border);
+    color: var(--band-text-2);
+  }
+
+  /* What else */
+  .else-block {
+    padding: 34px 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .else-block:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .else-block h3 {
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+
+  .else-body {
+    color: var(--text-2);
+    max-width: 70ch;
+    margin-bottom: 26px;
+  }
+
+  .d2c-flow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .d2c-step {
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    background: var(--surface);
+    padding: 11px 22px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .d2c-step:last-of-type {
+    border-color: var(--accent);
+    color: var(--accent-strong);
+    background: var(--surface-accent);
+  }
+
+  .d2c-arr {
+    color: var(--text-3);
+  }
+
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 16px;
+  }
+
+  .tool-card {
+    overflow: hidden;
+  }
+
+  .tool-card :global(.media-slot) {
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .tool-body {
+    padding: 18px 22px 22px;
+  }
+
+  .tool-body h4 {
+    letter-spacing: 0.08em;
+    color: var(--accent-strong);
+    margin-bottom: 8px;
+  }
+
+  .tool-body p {
+    font-size: 14px;
+    color: var(--text-2);
+  }
+</style>

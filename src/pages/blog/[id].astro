@@ -1,0 +1,190 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { formatDate } from '../../utils';
+
+export async function getStaticPaths() {
+  const posts = (await getCollection('blog')).sort(
+    (a, b) => a.data.date.getTime() - b.data.date.getTime()
+  );
+  return posts.map((post, i) => ({
+    params: { id: post.id },
+    props: {
+      post,
+      prev: posts[i - 1] ?? null,
+      next: posts[i + 1] ?? null,
+    },
+  }));
+}
+
+const { post, prev, next } = Astro.props;
+const { Content } = await render(post);
+---
+
+<Base title={`${post.data.title} - 徐炜楠的博客`} description={post.data.excerpt}>
+  <div class="progress" aria-hidden="true"><span></span></div>
+
+  <article class="post prose-width">
+    <a class="back mono-sm" href="/blog/"><span class="arr">←</span> 全部文章</a>
+
+    <header class="post-head">
+      <div class="post-meta mono-sm reveal">
+        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+        {post.data.categories[0] && <span class="cat">{post.data.categories[0]}</span>}
+        <span class="min">约 {post.data.minutes} 分钟</span>
+      </div>
+      <h1 class="reveal" style="--d:.05s">{post.data.title}</h1>
+      {
+        post.data.tags.length > 0 && (
+          <div class="tags reveal" style="--d:.1s">
+            {post.data.tags.map((t) => (
+              <span class="chip">{t}</span>
+            ))}
+          </div>
+        )
+      }
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    <footer class="post-foot">
+      <div class="author">
+        <span class="mono-label">Written by</span>
+        <span class="name">{post.data.author ?? '徐炜楠'}</span>
+      </div>
+      <nav class="post-nav" aria-label="相邻文章">
+        {
+          next && (
+            <a class="card nav-card" href={`/blog/${next.id}/`}>
+              <span class="mono-label">较新一篇 ←</span>
+              <span class="nav-title">{next.data.title}</span>
+            </a>
+          )
+        }
+        {
+          prev && (
+            <a class="card nav-card right" href={`/blog/${prev.id}/`}>
+              <span class="mono-label">较旧一篇 →</span>
+              <span class="nav-title">{prev.data.title}</span>
+            </a>
+          )
+        }
+      </nav>
+    </footer>
+  </article>
+</Base>
+
+<style>
+  .post {
+    padding-top: clamp(104px, 14vw, 152px);
+  }
+
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+    transition: color 0.2s ease;
+  }
+
+  .back .arr {
+    transition: transform 0.25s var(--ease-out);
+  }
+
+  .back:hover {
+    color: var(--text);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .back:hover .arr {
+      transform: translateX(-3px);
+    }
+  }
+
+  .back:active .arr {
+    transform: translateX(-5px);
+  }
+
+  .post-head {
+    padding: clamp(28px, 4vw, 44px) 0 clamp(28px, 4vw, 40px);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: clamp(32px, 4.5vw, 48px);
+  }
+
+  .post-meta {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+    margin-bottom: 20px;
+  }
+
+  .post-meta .cat {
+    color: var(--accent-strong);
+  }
+
+  .post-head h1 {
+    font-size: clamp(26px, 4.6vw, 40px);
+    line-height: 1.32;
+    letter-spacing: -0.01em;
+    margin-bottom: 22px;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tags .chip {
+    font-size: 12px;
+    padding: 4px 12px;
+  }
+
+  .post-foot {
+    margin-top: clamp(44px, 6vw, 64px);
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  .author {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 30px;
+  }
+
+  .author .name {
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .post-nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 14px;
+  }
+
+  .nav-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 22px;
+  }
+
+  .nav-card.right {
+    text-align: right;
+    align-items: flex-end;
+  }
+
+  .nav-title {
+    font-size: 15px;
+    font-weight: 550;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+  }
+</style>

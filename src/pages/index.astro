@@ -1,47 +1,1279 @@
 ---
+import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import MediaSlot from '../components/MediaSlot.astro';
+import { formatDate } from '../utils';
+import { cases } from '../data/cases';
+
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 4);
+
+const FIGMA_URL =
+  'https://www.figma.com/design/cpxGuEaNoMIHF4IZcmbUfx/Playground?node-id=539-385';
+
+const experience = [
+  {
+    company: 'flomo',
+    role: '设计师',
+    dates: '2025.5 - 2025.12',
+    tags: ['产品策略', '全栈设计'],
+    body: '以全栈视角驱动独立产品的迭代，通过优化设计-开发协作流提升人效，并主导 AI 洞察功能的设计落地。在处理高频用户反馈中，通过设计手段解决数据安全、搜索优化等核心体验痛点。',
+  },
+  {
+    company: 'Followup.AI',
+    role: 'UX Designer',
+    dates: '2024.1 - 2025.3',
+    tags: ['B端', '设计系统', 'AI Agent'],
+    body: '在一家 AI 创业公司，我主导了项目管理平台从零到一的设计，建立了完整的设计体系，打通了开发与设计的协作流程。并将前沿技术与产品需求无缝结合，成功落地了多个 AI 特色功能。',
+    link: '/work/followup-ai/',
+  },
+  {
+    company: '小鹏汇天',
+    role: '交互高级设计师',
+    dates: '2022.10 - 2023.5',
+    tags: ['HMI', '智能座舱', '体验度量'],
+    body: '发起并建立了可量化的智能座舱体验度量体系，将复杂的感官体验拆解为可量化的技术指标，填补了公司座舱评价体系的空白。',
+  },
+  {
+    company: 'OPPO',
+    role: '用户体验设计师',
+    dates: '2018.7 - 2022.9',
+    tags: ['创新型项目', 'ColorOS', '设计洞察'],
+    body: '在多个创新型项目中发挥关键作用。在 ColorOS 跨屏互联项目中定义了跨端流转的交互底层逻辑，通过对技术的理解克服了多端连接的感知难题，该项目最终获得「极致体验奖」。在 OPPO 车机创新预研项目中，带领团队进行设计洞察，为新驾驶模式的落地和后续规划做出了重要贡献。',
+  },
+];
+
+const capabilities = [
+  {
+    en: 'Design Engineering',
+    title: '设计工程化',
+    body: '利用插件开发与自动化工具打通产研链路，实现设计规范到代码逻辑的无缝交付。',
+  },
+  {
+    en: 'Rapid Prototyping',
+    title: '快速原型 Build',
+    body: '具备原生代码编写能力，能通过 Xcode 快速构建包含真实业务逻辑的交互原型。',
+  },
+  {
+    en: 'AI Workflow',
+    title: 'AI 工作流构建',
+    body: '能够基于 ComfyUI 搭建垂直领域的设计资源产出工作流，将生成式 AI 转为可落地的产品力。',
+  },
+  {
+    en: 'Motion & Micro-interaction',
+    title: '动效与微交互',
+    body: '运用动效建立直观的操作反馈与心理预期，在更多维度下提升产品的连贯性与精致感。',
+  },
+];
+
+const beforeYouEnter = [
+  {
+    tag: 'EXPERIMENTAL',
+    title: '实验性，边做边想',
+    body: '这是一次探索而非成品，结构和结论都还在变 —— 某些部分可能不完整，或留着待解决的问题。',
+  },
+  {
+    tag: 'JARGON',
+    title: '会有一些专业术语',
+    body: '项目用到不少较新的工具与方法，难免出现专业名词。遇到不熟悉的概念，可放心略过，不影响理解主线。',
+  },
+  {
+    tag: 'LIVE',
+    title: '在线呈现，随时可能变动',
+    body: '内容以在线地址的方式持续迭代，链接指向的版本会不断更新 —— 你看到的，是它此刻的样子。',
+  },
+];
+
+/** 历史作品集:每项跳转到 📝简历 Figma 文件里的对应画板(node-id 可后续细化到单项) */
+const RESUME_FIGMA_URL =
+  'https://www.figma.com/design/S01WbvJxrtsbrUqbaF7sdT/%F0%9F%93%9D-%E7%AE%80%E5%8E%86?node-id=2730-51683';
+
+const historical = [
+  { label: 'OPPO 车机设计洞察', figma: RESUME_FIGMA_URL },
+  { label: '智能座舱度量体系', figma: RESUME_FIGMA_URL },
+  { label: '腾讯公益课件 AI 配图', figma: RESUME_FIGMA_URL },
+  { label: '跨屏互联创新项目', figma: RESUME_FIGMA_URL },
+];
 ---
 
-<Base title="Aaron Xu - Cloudflare Test">
+<Base title="徐炜楠 Aaron Xu - UX Engineer · 个人作品集" scrollspy>
+  <!-- ================= HERO ================= -->
   <section class="hero">
-    <div class="hero-copy">
-      <p class="eyebrow">PORTFOLIO SANDBOX</p>
-      <h1>一个足够小的<br /><span>部署测试站。</span></h1>
-      <p class="intro">
-        延续原作品集的 Astro 架构与设计语言，用来验证构建、域名、缓存和 HTTPS 配置。
+    <div class="container">
+      <div class="hero-top mono-sm reveal">2025 EDITION · PORTFOLIO</div>
+      <h1 class="display reveal" style="--d:.05s">
+        Welcome to<br />My <span class="accent-text">Portfolio</span>.
+      </h1>
+      <p class="hero-sub lead reveal" style="--d:.12s">
+        你好，我是徐炜楠 —— <strong>A UX Engineer</strong> · Design with Code, Think with
+        AI。一个懂技术的设计师，把体验问题转化成可落地的工程方案。
       </p>
-      <a class="primary-action" href="#status">查看部署信息 <span aria-hidden="true">→</span></a>
+      <div class="hero-cta reveal" style="--d:.2s">
+        <a class="btn" href="#projects">
+          查看精选案例 <span class="arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
     </div>
-    <figure class="hero-visual">
-      <img
-        src="/hero-paper-planes.jpg"
-        width="1280"
-        height="960"
-        alt="白色与靛蓝色纸飞机构成的抽象画面"
-        loading="eager"
-        fetchpriority="high"
-      />
-    </figure>
   </section>
 
-  <section class="status" id="status" aria-labelledby="status-title">
-    <div>
-      <h2 id="status-title">部署配置</h2>
-      <p>连接 Git 仓库后，使用以下设置即可完成一次 Cloudflare Pages 测试。</p>
+  <!-- ================= ABOUT ================= -->
+  <section id="about" data-spy="about" class="about">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="num">01</span>
+        <span class="zh">关于我</span>
+        <span class="en">About</span>
+      </div>
+      <div class="about-grid">
+        <div class="about-text reveal">
+          <h2 class="h-section">你好，我是徐炜楠</h2>
+          <div class="mono-sm hi">Hi, Aaron Xu here</div>
+          <p>
+            一个懂技术的设计师，擅长在不确定性高的前沿领域中，将体验问题转化成<strong
+              >可落地的工程方案</strong
+            >。
+          </p>
+          <p>
+            曾在 OPPO、小鹏深度参与负责多个创新型项目的设计预研，也在 AI 创业公司主导过一个
+            SaaS 平台从 0 到 1 的全流程设计。
+          </p>
+          <p>
+            工作之外，我也会独立开发产品。开发的 Figma 插件已有近 <strong>6K</strong>
+            的使用量。正在开发的漫画收藏 APP 也有着不错的用户评价。
+          </p>
+          <div class="edu">
+            <span class="mono-label">Education</span>
+            <div class="edu-body">
+              <span>华中科技大学 · 2014 - 2018</span>
+              <span class="edu-degree">传播学（网络传播）/ 计算机科学与技术 · 双学位</span>
+            </div>
+          </div>
+        </div>
+        <div class="about-portrait reveal" style="--d:.12s">
+          <MediaSlot label="个人头像" node="539:8624" ratio="4 / 5" />
+        </div>
+      </div>
     </div>
-    <dl>
-      <div>
-        <dt>Build command</dt>
-        <dd><code>npm run build</code></dd>
+  </section>
+
+  <!-- ================= EXPERIENCE ================= -->
+  <section id="experience" data-spy="experience" class="experience">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="num">02</span>
+        <span class="zh">经历</span>
+        <span class="en">Experience</span>
+        <span class="side mono-sm timeline-note">2018 - NOW</span>
       </div>
-      <div>
-        <dt>Build directory</dt>
-        <dd><code>dist</code></dd>
+      <ol class="timeline">
+        {
+          experience.map((job, i) => (
+            <li class="job reveal" style={`--d:${i * 0.07}s`}>
+              <div class="job-when mono-sm">{job.dates}</div>
+              <div class="job-dot" aria-hidden="true" />
+              <div class="job-body">
+                <div class="job-title">
+                  <h3>{job.company}</h3>
+                  <span class="role">{job.role}</span>
+                  {job.link && (
+                    <a class="job-link mono-sm" href={job.link}>
+                      查看案例 →
+                    </a>
+                  )}
+                </div>
+                <div class="job-tags">
+                  {job.tags.map((t) => (
+                    <span class="chip">{t}</span>
+                  ))}
+                </div>
+                <p>{job.body}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= CAPABILITIES ================= -->
+  <section id="capabilities" class="capabilities">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="num">03</span>
+        <span class="zh">能力</span>
+        <span class="en">Capabilities</span>
       </div>
-      <div>
-        <dt>Node version</dt>
-        <dd><code>22</code></dd>
+      <div class="cap-list">
+        {
+          capabilities.map((cap, i) => (
+            <div class="cap-item reveal" style={`--d:${i * 0.07}s`}>
+              <span class="mono-accent idx">{String(i + 1).padStart(2, '0')}</span>
+              <div class="cap-body">
+                <div class="cap-title-row">
+                  <h3>{cap.title}</h3>
+                  <span class="mono-label">{cap.en}</span>
+                </div>
+                <p>{cap.body}</p>
+              </div>
+            </div>
+          ))
+        }
       </div>
-    </dl>
+    </div>
+  </section>
+
+  <!-- ================= LIVE PROJECT ================= -->
+  <section class="live">
+    <div class="container">
+      <div class="live-panel card reveal">
+        <div class="badges">
+          <span class="badge badge-solid">EXPERIMENTAL</span>
+          <span class="badge">WORK IN PROGRESS</span>
+          <span class="badge">LIVE · 持续迭代</span>
+        </div>
+        <h2 class="h-section">开始前安利：正在进行的<span class="accent-text">实验性项目</span></h2>
+        <p class="lead">
+          AI 让技术疯狂更新，传统的静态作品集很容易落后。所以我想做一个<strong
+            >会生长的作品集</strong
+          > —— 跟进展示我最近正在研究的事情。
+        </p>
+        <p class="pre-note">在点进去之前，有三件事想先说在前。</p>
+        <div class="notes">
+          <div class="mono-label notes-title">阅前须知 · Before You Enter</div>
+          {
+            beforeYouEnter.map((n) => (
+              <div class="note-row">
+                <span class="note-tag mono-sm">{n.tag}</span>
+                <div>
+                  <div class="note-title">{n.title}</div>
+                  <p>{n.body}</p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+        <div class="live-cta">
+          <a class="btn" href={FIGMA_URL} target="_blank" rel="noopener">
+            进入项目 <span class="arrow" aria-hidden="true">→</span>
+          </a>
+          <span class="cta-hint mono-sm">
+            <span class="dot-green" aria-hidden="true"></span>
+            当前指向一个 Figma 文件 · 地址可能随版本更新
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FEATURED PROJECTS ================= -->
+  <section id="projects" data-spy="projects" class="projects">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="num">04</span>
+        <span class="zh">精选案例</span>
+        <span class="en">Featured Projects</span>
+      </div>
+      <p class="lead projects-intro reveal">
+        🧐 接下来，我将要讲述我近年来 <strong>2 个</strong>能定义我职业维度的核心项目。
+      </p>
+
+      <div class="project-grid">
+        {
+          cases
+            .filter((c) => c.kind === 'featured')
+            .map((c, i) => (
+              <a
+                class="card project-card reveal"
+                style={i > 0 ? `--d:${i * 0.1}s` : undefined}
+                href={`/work/${c.slug}/`}
+              >
+                <MediaSlot label={c.media!.label} node={c.media!.node} ratio={c.media!.ratio} />
+                <div class="project-body">
+                  <div class="project-kicker">
+                    <span class="mono-accent">{c.num}</span>
+                    <span class="badge">{c.category}</span>
+                    {c.rating && <span class="rating mono-sm">{c.rating}</span>}
+                  </div>
+                  <h3>
+                    {c.title}
+                    {c.subEn && <span class="sub-en"> {c.subEn}</span>}
+                  </h3>
+                  <p>{c.summary}</p>
+                  <div class="project-tags">
+                    {c.tags?.map((t) => (
+                      <span class="chip">{t}</span>
+                    ))}
+                  </div>
+                  <span class="project-go mono-sm">
+                    阅读案例 <span class="arrow">→</span>
+                  </span>
+                </div>
+              </a>
+            ))
+        }
+      </div>
+
+      {
+        cases
+          .filter((c) => c.kind === 'lab')
+          .map((c) => (
+            <a class="band long-case reveal" href={`/work/${c.slug}/`}>
+              <div class="long-case-text">
+                <div class="long-case-kicker">
+                  <span class="mono-sm lab">{c.labKicker}</span>
+                  <span class="mono-sm frames">{c.labFrames}</span>
+                </div>
+                <h3>{c.title}</h3>
+                <p>{c.summary}</p>
+              </div>
+              <span class="long-case-go" aria-hidden="true">
+                →
+              </span>
+            </a>
+          ))
+      }
+
+      <div class="minor-row">
+        {
+          cases
+            .filter((c) => c.kind === 'minor')
+            .map((c) => (
+              <a class="card minor-card reveal" href={`/work/${c.slug}/`}>
+                <div>
+                  <div class="mono-label">{c.minorLabel}</div>
+                  <h3>{c.title}</h3>
+                  <p>{c.minorDesc}</p>
+                </div>
+                <span class="project-go mono-sm">
+                  查看 <span class="arrow">→</span>
+                </span>
+              </a>
+            ))
+        }
+        <div class="card minor-card history reveal" style="--d:.08s">
+          <div>
+            <div class="mono-label">Archive</div>
+            <h3>历史作品集</h3>
+            <div class="history-chips">
+              {
+                historical.map((h) => (
+                  <a class="chip history-link" href={h.figma} target="_blank" rel="noopener">
+                    <Icon name="figma-logo" size={13} />
+                    {h.label}
+                  </a>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BLOG ================= -->
+  <section id="blog-home" class="blog-home">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="num">05</span>
+        <span class="zh">博客</span>
+        <span class="en">Blog</span>
+        <a class="side mono-sm blog-all" href="/blog/">全部文章 →</a>
+      </div>
+      <div class="post-rows">
+        {
+          posts.map((post, i) => (
+            <a class="post-row reveal" style={`--d:${i * 0.06}s`} href={`/blog/${post.id}/`}>
+              <time class="mono-sm" datetime={post.data.date.toISOString()}>
+                {formatDate(post.data.date)}
+              </time>
+              <div class="post-main">
+                <h3>{post.data.title}</h3>
+                <p>{post.data.excerpt}</p>
+              </div>
+              <div class="post-side mono-sm">
+                {post.data.categories[0] && <span class="cat">{post.data.categories[0]}</span>}
+                <span class="min">{post.data.minutes} min</span>
+              </div>
+              <span class="post-arr" aria-hidden="true">→</span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CONTACT ================= -->
+  <section id="contact" data-spy="contact" class="contact">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="num">06</span>
+        <span class="zh">联系我</span>
+        <span class="en">Contact</span>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-lead reveal">
+          <h2 class="h-section">Let's <span class="accent-text">talk</span>.</h2>
+          <p class="lead">
+            对设计工程、AI 工作流或任何有趣的产品想法感兴趣？随时联系我。
+          </p>
+          <a class="btn contact-mail" href="mailto:woshixwn@gmail.com">
+            woshixwn@gmail.com <span class="arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+        <ul class="contact-list reveal" style="--d:.1s">
+          <li>
+            <span class="mono-label">Website</span>
+            <a href="https://www.xuweinan.com/" target="_blank" rel="noopener"
+              >www.xuweinan.com ↗</a
+            >
+          </li>
+          <li>
+            <span class="mono-label">小红书</span>
+            <button type="button" data-copy="6364222434" aria-live="polite">
+              <span data-copy-label>6364222434</span>
+              <span class="copy-hint mono-sm">复制</span>
+            </button>
+          </li>
+          <li>
+            <span class="mono-label">WeChat</span>
+            <button type="button" data-copy="woshixwn123" aria-live="polite">
+              <span data-copy-label>woshixwn123</span>
+              <span class="copy-hint mono-sm">复制</span>
+            </button>
+          </li>
+          <li>
+            <span class="mono-label">Phone</span>
+            <button type="button" data-copy="+86 18507190926" aria-live="polite">
+              <span data-copy-label>+86 185 0719 0926</span>
+              <span class="copy-hint mono-sm">复制</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
   </section>
 </Base>
+
+<style>
+  section {
+    padding: clamp(72px, 10.5vw, 136px) 0 0;
+  }
+
+  .contact {
+    padding-bottom: clamp(56px, 8vw, 96px);
+  }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    position: relative;
+    min-height: 86svh;
+    display: flex;
+    align-items: center;
+    padding: 108px 0 72px;
+  }
+
+  .hero-top {
+    display: inline-block;
+    letter-spacing: 0.22em;
+    color: var(--text-mono);
+    margin-bottom: 32px;
+  }
+
+  .hero h1 {
+    max-width: 14ch;
+    font-size: clamp(42px, 7.2vw, 74px);
+    margin-bottom: 30px;
+  }
+
+  .hero-sub {
+    max-width: 56ch;
+  }
+
+  .hero-sub strong {
+    color: var(--text);
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 46px;
+  }
+
+  /* ---------- ABOUT ---------- */
+  .about-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr);
+    gap: clamp(36px, 6vw, 88px);
+    align-items: start;
+  }
+
+  .about-text h2 {
+    margin-bottom: 10px;
+  }
+
+  .about-text .hi {
+    color: var(--text-mono);
+    letter-spacing: 0.14em;
+    margin-bottom: 30px;
+  }
+
+  .about-text p {
+    color: var(--text-2);
+    margin-bottom: 1em;
+    max-width: 58ch;
+  }
+
+  .about-text strong {
+    color: var(--text);
+  }
+
+  .edu {
+    display: flex;
+    gap: 24px;
+    align-items: baseline;
+    margin-top: 34px;
+    padding-top: 26px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .edu-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 15px;
+  }
+
+  .edu-degree {
+    color: var(--text-3);
+    font-size: 13.5px;
+  }
+
+  .about-portrait {
+    position: sticky;
+    top: 92px;
+  }
+
+  @media (max-width: 760px) {
+    .about-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .about-portrait {
+      position: static;
+      max-width: 340px;
+    }
+  }
+
+  /* ---------- EXPERIENCE ---------- */
+  .timeline-note {
+    letter-spacing: 0.14em;
+    color: var(--text-mono);
+  }
+
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 148px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .job {
+    display: grid;
+    grid-template-columns: 128px 40px minmax(0, 1fr);
+    padding: 26px 0;
+  }
+
+  .job + .job {
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .job-when {
+    color: var(--text-3);
+    font-size: 11.5px;
+    letter-spacing: 0.01em;
+    padding-top: 6px;
+    white-space: nowrap;
+  }
+
+  .job-dot {
+    position: relative;
+  }
+
+  .job-dot::before {
+    content: '';
+    position: absolute;
+    left: 15.5px;
+    top: 9px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    transition: background-color 0.3s ease;
+  }
+
+  .job:hover .job-dot::before {
+    background: var(--accent);
+  }
+
+  .job-title {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .job-title h3 {
+    font-size: 23px;
+    letter-spacing: -0.015em;
+    transition: color 0.2s ease;
+  }
+
+  .job:hover .job-title h3 {
+    color: var(--accent-strong);
+  }
+
+  .job-title .role {
+    color: var(--text-2);
+    font-size: 14.5px;
+  }
+
+  .job-link {
+    color: var(--accent-strong);
+    letter-spacing: 0.04em;
+  }
+
+  .job-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .job-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .job-body p {
+    color: var(--text-2);
+    max-width: 64ch;
+    font-size: 15px;
+  }
+
+  @media (max-width: 640px) {
+    .timeline::before {
+      display: none;
+    }
+
+    .job {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .job-dot {
+      display: none;
+    }
+  }
+
+  /* ---------- CAPABILITIES(编辑部式细线列表,无卡片) ---------- */
+  .cap-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: clamp(40px, 7vw, 96px);
+  }
+
+  .cap-item {
+    display: flex;
+    gap: clamp(18px, 3vw, 30px);
+    padding: 30px 0 36px;
+    border-top: 1px solid var(--border);
+  }
+
+  .cap-item .idx {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    padding-top: 5px;
+  }
+
+  .cap-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .cap-title-row h3 {
+    font-size: 21px;
+  }
+
+  .cap-body p {
+    font-size: 14.5px;
+    color: var(--text-2);
+    max-width: 44ch;
+  }
+
+  @media (max-width: 720px) {
+    .cap-list {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ---------- LIVE PROJECT ---------- */
+  .live-panel {
+    padding: clamp(32px, 5.5vw, 64px);
+  }
+
+  .badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 36px;
+  }
+
+  .live-panel h2 {
+    margin-bottom: 20px;
+    max-width: 24ch;
+  }
+
+  .live-panel > .lead {
+    max-width: 58ch;
+  }
+
+  .live-panel .lead strong {
+    color: var(--text);
+  }
+
+  .pre-note {
+    color: var(--text-3);
+    font-size: 15px;
+    margin-top: 14px;
+  }
+
+  .notes {
+    margin-top: 40px;
+  }
+
+  .notes-title {
+    margin-bottom: 6px;
+  }
+
+  .note-row {
+    display: flex;
+    gap: clamp(16px, 4vw, 32px);
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .note-row:first-of-type {
+    border-top: 1px solid var(--border);
+  }
+
+  .note-tag {
+    color: var(--accent-strong);
+    letter-spacing: 0.06em;
+    flex: 0 0 clamp(96px, 14vw, 132px);
+    padding-top: 3px;
+  }
+
+  .note-title {
+    font-size: 16.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 5px;
+  }
+
+  .note-row p {
+    font-size: 14.5px;
+    color: var(--text-2);
+    max-width: 66ch;
+  }
+
+  .live-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+  }
+
+  .cta-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.02em;
+  }
+
+  .dot-green {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+
+  @media (max-width: 560px) {
+    .note-row {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+
+  /* ---------- PROJECTS ---------- */
+  .projects-intro {
+    margin-bottom: clamp(30px, 4vw, 44px);
+    max-width: 56ch;
+  }
+
+  .projects-intro strong {
+    color: var(--accent-strong);
+  }
+
+  .project-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  /* 非对称双卡:主案例占更大跨度 */
+  @media (min-width: 860px) {
+    .project-grid {
+      grid-template-columns: 1.25fr 1fr;
+      align-items: stretch;
+    }
+  }
+
+  .project-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .project-card :global(.media-slot) {
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .project-body {
+    padding: 28px 30px 30px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .project-kicker {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .project-kicker .mono-accent {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+
+  .rating {
+    color: var(--text-3);
+    letter-spacing: 0.03em;
+  }
+
+  .project-body h3 {
+    font-size: 25px;
+    margin-bottom: 12px;
+  }
+
+  .sub-en {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-3);
+    letter-spacing: 0;
+  }
+
+  .project-body > p {
+    color: var(--text-2);
+    font-size: 15px;
+    margin-bottom: 20px;
+  }
+
+  .project-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 26px;
+  }
+
+  .project-go {
+    margin-top: auto;
+    color: var(--accent-strong);
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .project-go .arrow {
+    transition: transform 0.25s var(--ease-out);
+    display: inline-block;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .project-card:hover .project-go .arrow,
+    .minor-card:hover .project-go .arrow {
+      transform: translateX(4px);
+    }
+  }
+
+  /* 长案例入口（深色带） */
+  .long-case {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(20px, 4vw, 48px);
+    margin-top: 18px;
+    padding: clamp(30px, 5vw, 52px) clamp(28px, 5vw, 56px);
+    transition: transform 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .long-case:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card);
+    }
+  }
+
+  .long-case:active {
+    transform: translateY(-1px) scale(0.995);
+  }
+
+  .long-case-kicker {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .long-case .lab {
+    color: var(--band-accent-2);
+    letter-spacing: 0.18em;
+  }
+
+  .long-case .frames {
+    color: var(--band-text-3);
+    letter-spacing: 0.18em;
+  }
+
+  .long-case h3 {
+    font-size: clamp(22px, 3.4vw, 31px);
+    margin-bottom: 12px;
+    color: var(--band-text);
+  }
+
+  .long-case p {
+    color: var(--band-text-2);
+    font-size: 15.5px;
+    max-width: 64ch;
+  }
+
+  .long-case-go {
+    font-size: 30px;
+    color: var(--band-accent);
+    transition: transform 0.3s var(--ease-out);
+    flex-shrink: 0;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .long-case:hover .long-case-go {
+      transform: translateX(6px);
+    }
+  }
+
+  .minor-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .minor-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 28px 30px;
+  }
+
+  .minor-card .mono-label {
+    margin-bottom: 12px;
+  }
+
+  .minor-card h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .minor-card p {
+    color: var(--text-3);
+    font-size: 14px;
+  }
+
+  .history-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .history-chips .chip {
+    font-size: 12.5px;
+  }
+
+  .history-link {
+    gap: 6px;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .history-link svg {
+    color: var(--text-3);
+    transition: color 0.2s ease;
+  }
+
+  .history-link:hover {
+    color: var(--accent-strong);
+    border-color: var(--accent-border);
+  }
+
+  .history-link:hover svg {
+    color: var(--accent-strong);
+  }
+
+  .history-link:active {
+    transform: scale(0.96);
+  }
+
+  /* ---------- BLOG ---------- */
+  .blog-all {
+    color: var(--accent-strong);
+    letter-spacing: 0.06em;
+  }
+
+  .blog-all:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .post-rows {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .post-row {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr) auto 20px;
+    gap: clamp(14px, 2.5vw, 28px);
+    align-items: baseline;
+    padding: 19px 6px;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background-color 0.2s ease;
+  }
+
+  .post-row:first-child {
+    border-top: 1px solid var(--border);
+  }
+
+  .post-row:hover {
+    background: color-mix(in oklch, var(--surface) 70%, transparent);
+  }
+
+  .post-row time {
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+
+  .post-main {
+    min-width: 0;
+  }
+
+  .post-main h3 {
+    font-size: 16.5px;
+    line-height: 1.45;
+    margin-bottom: 4px;
+    transition: color 0.2s ease;
+  }
+
+  .post-row:hover .post-main h3 {
+    color: var(--accent-strong);
+  }
+
+  .post-main p {
+    font-size: 13px;
+    color: var(--text-3);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .post-side {
+    display: flex;
+    gap: 16px;
+    align-items: baseline;
+    white-space: nowrap;
+  }
+
+  .post-side .cat {
+    color: var(--accent-strong);
+  }
+
+  .post-side .min {
+    color: var(--text-mono);
+  }
+
+  .post-arr {
+    color: var(--text-3);
+    transition: transform 0.25s var(--ease-out), color 0.2s ease;
+  }
+
+  .post-row:hover .post-arr {
+    color: var(--accent-strong);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .post-row:hover .post-arr {
+      transform: translateX(4px);
+    }
+  }
+
+  .post-row:active {
+    background: color-mix(in oklch, var(--surface) 45%, transparent);
+  }
+
+  @media (max-width: 720px) {
+    .post-row {
+      grid-template-columns: minmax(0, 1fr) 20px;
+    }
+
+    .post-row time {
+      grid-column: 1;
+    }
+
+    .post-side {
+      grid-column: 1;
+    }
+
+    .post-arr {
+      grid-row: 2;
+      grid-column: 2;
+    }
+  }
+
+  /* ---------- CONTACT ---------- */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: clamp(36px, 6vw, 96px);
+    align-items: start;
+  }
+
+  .contact-lead h2 {
+    font-size: clamp(38px, 6vw, 58px);
+    margin-bottom: 20px;
+  }
+
+  .contact-lead .lead {
+    max-width: 40ch;
+    margin-bottom: 36px;
+  }
+
+  .contact-mail {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    letter-spacing: 0.01em;
+  }
+
+  .contact-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .contact-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .contact-list li:first-child {
+    border-top: 1px solid var(--border);
+  }
+
+  .contact-list a,
+  .contact-list button {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 15px;
+    color: var(--text);
+    font-family: var(--font-sans);
+    transition: color 0.2s ease, transform 0.15s var(--ease-out);
+  }
+
+  .contact-list button:active {
+    transform: scale(0.98);
+  }
+
+  .contact-list a:hover,
+  .contact-list button:hover {
+    color: var(--accent-strong);
+  }
+
+  .copy-hint {
+    color: var(--text-mono);
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
+    padding: 3px 8px;
+    letter-spacing: 0.08em;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .contact-list button:hover .copy-hint {
+    color: var(--accent-strong);
+    border-color: var(--accent-border);
+  }
+
+  .contact-list button.copied .copy-hint {
+    color: var(--success);
+    border-color: var(--success);
+  }
+
+  @media (max-width: 720px) {
+    .contact-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

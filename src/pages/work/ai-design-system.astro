@@ -1,0 +1,2262 @@
+---
+import Base from '../../layouts/Base.astro';
+import MediaSlot from '../../components/MediaSlot.astro';
+
+/**
+ * 长案例：复合设计系统 —— 按 ds/project 原型的 15 个分幕重建。
+ * 视觉与原型逐幕对照：编号区块头 + 明暗节奏（05/09/转场为深色带）。
+ */
+
+const whyCards = [
+  {
+    en: 'Capability',
+    title: 'AI 能力跨过门槛',
+    body: '我有独立开发的经历，所以会经常接触 AI Coding 类工具，因此关注到 LLM 模型的指令遵循和逻辑推演越来越强。其中 Opus 4.6 是感受最为强烈的版本。',
+  },
+  {
+    en: 'Protocol',
+    title: 'DESIGN.md 指明方向',
+    body: 'Google 的 DESIGN.md 协议虽粗浅，却点明：设计系统不再只是设计内部的事，可以直接下探到 code。开源的 Open Design 框架也给了我不少参考灵感。',
+  },
+  {
+    en: 'Personal',
+    title: '顺便补自己的短板',
+    body: '交互出身的我视觉能力一直都是偏弱的。所以也想看看能不能借 AI「大力出奇迹」，换一种方式把自己的视觉设计能力也拉上来。',
+  },
+];
+
+const framework = [
+  {
+    label: '01 · 目标',
+    title: '我要去哪',
+    body: '先讲清楚理想的产出长什么样，把方向定下来 —— 没有方向，后面的每一步都无从判断。',
+    ref: '见 05 · 三层约束',
+  },
+  {
+    label: '02 · 度量',
+    title: '怎么知道接近了',
+    body: '找一把不夹带私货的尺子，客观验证设计系统本身的效果，而不是工具的审美。',
+    ref: '见 06 · 选工具',
+  },
+  {
+    label: '03 · 迭代',
+    title: '不对时改哪里',
+    body: '把问题放回系统，一轮轮收敛 —— 这是「如何思考」的元方法，也是全篇分量最重的部分。',
+    ref: '见 07–09 · Origin / 调参 / Loop',
+  },
+];
+
+/** 三层约束（自上而下渲染：PATTERN → LANGUAGE → TOKEN） */
+const layers = [
+  {
+    key: 'PATTERN',
+    name: '场景范式',
+    body: '设计语言在具体场景里的稳定做法：导航怎么组织、页面如何布局、各种局部控件怎么用。',
+    quant: 3,
+    risk: 3,
+    accent: false,
+  },
+  {
+    key: 'LANGUAGE',
+    name: '设计判断',
+    body: '产品气质与设计语言。最空泛，也是我最担心 AI 的一层 —— 它和人一样会误读抽象概念。年少时我也常把「无边界」「水生设计」这种语言理解偏，还得靠评审矫正。',
+    quant: 1,
+    risk: 5,
+    accent: false,
+  },
+  {
+    key: 'TOKEN',
+    name: '视觉原子',
+    body: '颜色 / 字号 / 间距 / 圆角 / 阴影。最定量，也是 AI 最不会出错的一层。',
+    quant: 5,
+    risk: 1,
+    accent: true,
+  },
+];
+
+const tools = [
+  {
+    name: 'Stitch',
+    verdict: '噪音太大',
+    why: '会带上 Google 的设计语言 —— 适合发散探索，不适合做度量。',
+    chosen: false,
+  },
+  {
+    name: 'Claude Design',
+    verdict: '太聪明',
+    why: '内置专业工作流会预先矫正结果，测不准系统本身，而且很烧 token。',
+    chosen: false,
+  },
+  {
+    name: 'Claude Code',
+    verdict: '老实但有用',
+    why: '严苛遵循给定系统，还能追问「为什么这样设计」、指出设计依据 —— 看得见判断的过程。',
+    chosen: true,
+  },
+];
+
+const metricChecks = ['设计语言是否跑偏', '高频组件是否误用', '是否生成无意义文案与装饰'];
+
+const loopSteps = [
+  'CC 按最新的 DESIGN.md + 固定结构，生成页面',
+  '按度量维度查看、记录问题',
+  '反问 CC 要设计依据，连同问题入「问题池」',
+  '选几个互不关联的问题，用 Codex + Git 改 DESIGN.md',
+  '回到 01，再来一轮',
+];
+
+const tuningPrinciples = [
+  ['准备', '风格各异的测试样本', '，暴露过拟合'],
+  ['每轮', '只修一个维度', '，便于归因'],
+  ['规则系统', '抽象、拆够细', ''],
+  ['善用 ', 'Anti 描述', '，阻断高频套路'],
+  ['结构化，降低', '上下文稀释', ''],
+];
+
+const examples = [
+  {
+    ver: 'v0.6 → 0.7',
+    title: '过拟合：每页都像首页',
+    rows: [
+      ['现象', '生成的其他页面都带浓浓首页风格，都想放个大 Hero。'],
+      ['定位', '提供的 Components 太少，AI 只能退回通用组件。'],
+      ['处理', '0.6.x 起逐步增补，0.7 补充大量 Components。'],
+    ],
+    verify: '过拟合现象明显改善。',
+  },
+  {
+    ver: 'v0.8',
+    title: '规则遵守：List 总不留间隔',
+    rows: [
+      ['现象', 'List 规则要求 item 间留间隔，AI 不稳定遵守。'],
+      ['定位', 'AI 按 HTML 标签判断「是不是 List」，而非视觉。'],
+      ['处理', '改 Dm —— 要求按视觉特征判断，而非代码标签。'],
+    ],
+    verify: 'Workflow 面板里确有 subagent 做视觉检测，且产物合规。',
+  },
+];
+
+const results = [
+  { idx: 'A', zh: '仪表盘', en: 'Dashboard', body: '高信息密度，多组件并置。' },
+  { idx: 'B', zh: '数据表', en: 'Data Table', body: '以表格为主，强调对齐与可读性。' },
+  { idx: 'C', zh: '表单 / 详情', en: 'Form & Detail', body: '留白充足，引导式的纵向布局。' },
+];
+
+const issues = [
+  {
+    idx: 'ISSUE 01',
+    tag: '待下游补强',
+    title: '中文适应，尤其是寡行',
+    body: 'AI 似乎难以理解「单行只剩 1–2 个字」这种西文里罕见的寡行问题。虽然可以要求它加上 text-wrap: pretty 从 CSS 层面兜底，但我更想建立一套通用、跨平台的约束。',
+    plan: '在下游增加一个「寡行检测」Step，交给单独的 AI（可能试试国内模型）专门处理。',
+  },
+  {
+    idx: 'ISSUE 02',
+    tag: '待上游补强',
+    title: 'Design Pattern 需要拆分',
+    body: '0.9 之后想给每个页面的各部分都补上范式（如 Landing Page 各部分的用法），但这又把问题带回了最初的过拟合。若像 Components 那样堆更多范式能减轻它，却很容易让 DESIGN.md 变得超长、占满 AI 的上下文窗口。',
+    plan: '在上游用某种 Skill，动态生成当前页面所需的那部分 Design Pattern，与 DESIGN.md 一同构成设计上下文。',
+  },
+];
+
+const closingInsights = [
+  '过去的设计系统解决人与人的协作；AI 时代的设计系统，还要解决人与模型如何协作。',
+  '设计师要把原本只存在于经验里的判断拆出来：哪些变成 token、哪些写进 language；哪些需要沉淀、哪些不能写死。',
+  'AI 时代逼着我们把隐性经验，整理成 AI 能理解、执行、被验证的规则。',
+];
+
+const Dots = (n: number, danger = false) =>
+  Array.from({ length: 5 }, (_, i) => ({ on: i < n, danger }));
+---
+
+<Base
+  title="让 AI 稳定产出 production-level 设计稿 - 徐炜楠"
+  description="一次关于「复合设计系统」的探索 —— 把设计系统从一份交付物，做成一个 AI 能执行、能验证的可运行约束系统。"
+>
+  <div class="progress" aria-hidden="true"><span></span></div>
+
+  <article class="ds-case container">
+    <a class="back mono-sm" href="/#projects"><span class="arr">←</span> 返回精选案例</a>
+
+    <!-- ============ 01 封面 ============ -->
+    <section id="s01" class="frame cover">
+      <div class="cover-top">
+        <span class="mono-sm kicker">Composite Design System</span>
+        <span class="mono-sm pager">01 / 14</span>
+      </div>
+      <h1 class="reveal">
+        让 AI 稳定产出 <span class="accent-text">production-level</span> 设计稿
+      </h1>
+      <p class="cover-sub lead reveal" style="--d:.08s">
+        一次关于「复合设计系统」的探索 —— 把设计系统从一份交付物，做成一个 AI
+        能执行、能验证的<strong>可运行约束系统</strong>。
+      </p>
+      <div class="takeaway reveal" style="--d:.16s">
+        <div class="mono-label">Core Takeaway</div>
+        <p>
+          让 AI
+          画一张好看的页面已不稀奇；真正难的，是当需求、页面类型、信息密度都在变时，它还能不能<span
+            class="accent-text">稳定沿用同一套设计判断</span
+          > —— 而不是退回互联网上最常见的模板。
+        </p>
+      </div>
+      <div class="viewpoint reveal" style="--d:.22s">
+        <span class="mono-label">Viewpoint</span>
+        <span class="vsep" aria-hidden="true"></span>
+        <span>交互设计 / UX 工程 · 独立探索</span>
+      </div>
+      <div class="credit mono-sm">本演示稿由 Claude Design 生成 · 网页版按原稿重建</div>
+    </section>
+
+    <!-- ============ 02 起点 ============ -->
+    <section id="s02" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">02</span>
+        <span class="fzh">起点</span>
+        <span class="fen mono-label">Why Do This</span>
+      </div>
+      <h2 class="reveal">为什么动手做这件事</h2>
+      <p class="frame-lead reveal">三件事在同一时间凑齐，把「用 AI 构建设计系统」从空想推到了眼前。</p>
+      <div class="tri-grid">
+        {
+          whyCards.map((c, i) => (
+            <div class="card pad reveal" style={`--d:${i * 0.08}s`}>
+              <div class="card-kicker">
+                <span class="mono-accent">{String(i + 1).padStart(2, '0')}</span>
+                <span class="mono-label">{c.en}</span>
+              </div>
+              <h3>{c.title}</h3>
+              <p>{c.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- ============ 03 问题 ============ -->
+    <section id="s03" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">03</span>
+        <span class="fzh">开工前思考</span>
+        <span class="fen mono-label">Thoughts</span>
+      </div>
+      <div class="problem-grid">
+        <div class="reveal">
+          <h2>真正的难题，<br />不是「好不好看」</h2>
+          <p class="frame-lead">
+            当页面类型、信息密度、需求都在变，AI 很容易退回互联网上最常见的做法 ——
+            俗称 <span class="mono-accent">「AI 味」</span>。难点是：如何让它在不同页面里，<strong
+              >稳定沿用同一套设计判断？</strong
+            >
+          </p>
+          <div class="project-zero">
+            <div class="pz-head">
+              <span class="pz-dot" aria-hidden="true"></span>
+              <span class="mono-sm">PROJECT · TOTAL ZERO</span>
+            </div>
+            <p>
+              恰好手上有一个公司内部全新项目，刻意与旧视觉资产拆开，不必迁就旧体系 ——
+              适合从零验证一套 AI 设计工作流。
+            </p>
+          </div>
+        </div>
+
+        <!-- 反例：刻意堆满「AI 味」套路 -->
+        <div class="reveal" style="--d:.12s">
+          <div class="ai-mock" role="img" aria-label="反例示意：堆满 AI 味套路的落地页">
+            <div class="ai-mock-badge mono-sm">This is AI 味</div>
+            <div class="chrome">
+              <span class="cdot" style="background:#ff5f57"></span>
+              <span class="cdot" style="background:#febc2e"></span>
+              <span class="cdot" style="background:#28c840"></span>
+              <span class="curl mono-sm">ai-startup-landing.app</span>
+            </div>
+            <div class="ai-hero">
+              <div class="ai-pill">🚀 Now with AI</div>
+              <div class="ai-title">Supercharge Your<br />Workflow with AI ✨</div>
+              <div class="ai-sub">
+                The all-in-one platform to build faster, ship smarter, and scale
+                effortlessly. Lorem ipsum dolor sit amet.
+              </div>
+              <div class="ai-ctas">
+                <span class="ai-btn-w">Get Started Free →</span>
+                <span class="ai-btn-o">Book a Demo</span>
+              </div>
+            </div>
+            <div class="ai-tiles">
+              <div class="ai-tile" style="border-left-color:#6366f1">
+                <div class="emoji">⚡</div>
+                <div class="metric">10×</div>
+                <div class="desc">Faster delivery</div>
+              </div>
+              <div class="ai-tile" style="border-left-color:#7c3aed">
+                <div class="emoji">🎯</div>
+                <div class="metric">99.9%</div>
+                <div class="desc">Uptime SLA</div>
+              </div>
+              <div class="ai-tile" style="border-left-color:#4f46e5">
+                <div class="emoji">🔥</div>
+                <div class="metric">3×</div>
+                <div class="desc">More productive</div>
+              </div>
+            </div>
+          </div>
+          <div class="anti-caption">
+            <span class="x mono-sm" aria-hidden="true">✕</span>
+            <p class="mono-sm">
+              紫蓝渐变 Hero · emoji 功能图标 · 圆角左边框卡片 · 虚构指标 · 填充文案
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 04 方法框架 ============ -->
+    <section id="s04" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">04</span>
+        <span class="fzh">方法框架</span>
+        <span class="fen mono-label">Framework</span>
+      </div>
+      <h2 class="reveal">把模糊问题，收敛成可推进的版本</h2>
+      <p class="frame-lead reveal">
+        面对一件还很模糊的事，我习惯先解决三个问题。这三段，也是贯穿全篇的进度骨架。
+      </p>
+      <div class="fw-grid">
+        {
+          framework.map((f, i) => (
+            <>
+              <div class="card pad fw-card reveal" style={`--d:${i * 0.08}s`}>
+                <div class="mono-accent fw-label">{f.label}</div>
+                <div class="fw-title">{f.title}</div>
+                <p>{f.body}</p>
+                <div class="fw-ref mono-sm">{f.ref}</div>
+              </div>
+              {i < framework.length - 1 && <span class="fw-arr" aria-hidden="true">→</span>}
+            </>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- ============ 05 目标（深色） ============ -->
+    <section id="s05" class="frame band-frame">
+      <div class="frame-head band-head-line reveal">
+        <span class="fnum mono-sm on-band-accent">05</span>
+        <span class="fzh on-band">目标</span>
+        <span class="fen mono-label">Goal</span>
+        <span class="phase mono-sm"><b>目标</b> / 度量 / 迭代</span>
+      </div>
+      <div class="goal-grid">
+        <div class="reveal">
+          <h2 class="on-band">把 AI 当成一个需要被约束的初级设计师</h2>
+          <p class="frame-lead on-band-2">
+            要稳住产出下限，得同时讲清三件事：能用哪些视觉原子、整体设计语言是什么、不同场景应该怎么做。
+          </p>
+        </div>
+        <div class="layers">
+          {
+            layers.map((l, i) => (
+              <div class:list={['layer reveal', { 'layer-accent': l.accent }]} style={`--d:${i * 0.08}s`}>
+                <div class="layer-main">
+                  <div class="layer-head">
+                    <span class="mono-sm lk">{l.key}</span>
+                    <span class="ln">{l.name}</span>
+                  </div>
+                  <p>{l.body}</p>
+                </div>
+                <div class="meters">
+                  <div class="meter">
+                    <div class="mono-sm meter-label">定量程度</div>
+                    <div class="dots">
+                      {Dots(l.quant).map((d) => (
+                        <span class:list={['pt', { on: d.on }]} />
+                      ))}
+                    </div>
+                  </div>
+                  <div class="meter">
+                    <div class="mono-sm meter-label">AI 风险</div>
+                    <div class="dots">
+                      {Dots(l.risk, true).map((d) => (
+                        <span class:list={['pt danger', { on: d.on }]} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          }
+          <div class="layers-note mono-sm reveal">
+            <span class="on-band-accent">↑ 自下而上</span>
+            <span>越往上，越依赖判断、AI 风险越高</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 06 度量 ============ -->
+    <section id="s06" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">06</span>
+        <span class="fzh">度量</span>
+        <span class="fen mono-label">Metric</span>
+        <span class="phase mono-sm">目标 / <b>度量</b> / 迭代</span>
+      </div>
+      <h2 class="reveal">先找一把好尺子</h2>
+      <p class="frame-lead reveal">
+        要验证设计系统本身的效果，工具就不能自带审美、或藏着隐性的修正工作流。
+      </p>
+
+      <div class="tool-table reveal" role="table" aria-label="候选工具对比">
+        <div class="tt-row tt-head" role="row">
+          <span role="columnheader" class="mono-label">候选工具</span>
+          <span role="columnheader" class="mono-label">结论</span>
+          <span role="columnheader" class="mono-label">为什么</span>
+        </div>
+        {
+          tools.map((t) => (
+            <div class:list={['tt-row', { chosen: t.chosen }]} role="row">
+              <span role="cell" class="tt-name mono-sm">
+                {t.name}
+                {t.chosen && <span class="tt-check mono-sm">✓ 选用</span>}
+              </span>
+              <span role="cell" class:list={['tt-verdict', { good: t.chosen }]}>
+                {t.verdict}
+              </span>
+              <span role="cell" class="tt-why">{t.why}</span>
+            </div>
+          ))
+        }
+      </div>
+
+      <div class="checks reveal">
+        <div class="checks-head">
+          <span class="mono-label">重点看什么</span>
+          <span class="checks-note">Token 层 AI 几乎不犯，忽略；只盯这三处。</span>
+        </div>
+        <div class="checks-grid">
+          {
+            metricChecks.map((c) => (
+              <div class="check">
+                <span class="mono-accent" aria-hidden="true">✓</span>
+                <span>{c}</span>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 07 Origin ============ -->
+    <section id="s07" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">07</span>
+        <span class="fzh">迭代 · Origin</span>
+        <span class="fen mono-label">First Draft</span>
+        <span class="phase mono-sm">目标 / 度量 / <b>迭代</b></span>
+      </div>
+      <div class="origin-intro reveal">
+        <h2>做个垃圾出来</h2>
+        <p class="frame-lead">
+          不必一开始就把设计系统写完整。先抓住「改了最能影响整体观感」的两块 ——
+          它们定了，Design System 的基调就定了。
+        </p>
+      </div>
+
+      <div class="mono-label group-label reveal">两个高杠杆模块</div>
+      <div class="lever-grid">
+        <div class="lever reveal">
+          <div class="lever-name">Button</div>
+          <div class="lever-sub">集中了大量 token</div>
+          <p>颜色、圆角、间距、状态都压在一个组件里，牵一发而动全身。</p>
+        </div>
+        <div class="lever reveal" style="--d:.08s">
+          <div class="lever-name">Language Overview</div>
+          <div class="lever-sub">设计语言总纲</div>
+          <p>一句话定调，统领所有页面的气质走向。</p>
+        </div>
+      </div>
+
+      <div class="mono-label group-label reveal">得到 Origin 的流程</div>
+      <div class="origin-flow">
+        <div class="of-step card pad-sm reveal">
+          <div class="of-head">
+            <span class="of-name">发散</span>
+            <span class="mono-sm of-tool">STITCH</span>
+          </div>
+          <p>铺开多个方向，先看可能性。</p>
+        </div>
+        <span class="fw-arr" aria-hidden="true">→</span>
+        <div class="of-step wide card pad-sm reveal" style="--d:.08s">
+          <div class="of-head">
+            <span class="of-name">收敛</span>
+            <span class="mono-sm of-tool">CLAUDE DESIGN</span>
+          </div>
+          <div class="of-pills">
+            <span class="chip"><span class="mono-accent">Tweaks</span>&nbsp;试方案</span>
+            <span class="chip"><span class="mono-accent">Markup</span>&nbsp;指哪改哪</span>
+            <span class="chip"><span class="mono-accent">Edit</span>&nbsp;改参数</span>
+          </div>
+        </div>
+        <span class="fw-arr accent" aria-hidden="true">→</span>
+        <div class="of-step dark reveal" style="--d:.16s">
+          <div class="of-head">
+            <span class="of-name">Origin</span>
+            <span class="mono-sm of-ver">v0.5</span>
+          </div>
+          <p>满意的起点版本，迭代的出发点。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 08 过拟合 / 欠拟合 ============ -->
+    <section id="s08" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">08</span>
+        <span class="fzh">迭代 · 旧经验新方法</span>
+        <span class="fen mono-label">Tuning</span>
+        <span class="phase mono-sm">目标 / 度量 / <b>迭代</b></span>
+      </div>
+      <h2 class="reveal">用训练模型的直觉，来调一份 DESIGN.md</h2>
+      <p class="frame-lead reveal">
+        2023 年训 Stable Diffusion 的经验提醒我：过拟合与欠拟合，是任何 Attention
+        机制模型的通病。<strong>DESIGN.md 也一样。</strong>
+      </p>
+
+      <div class="fit-grid">
+        <div class="card pad reveal">
+          <div class="fit-head">
+            <span class="mono-sm fit-tag">OVERFIT</span>
+            <span class="fit-title">过拟合：像，但太像</span>
+          </div>
+          <p class="fit-body">
+            基于单个 Landing Page
+            去细化规则，结果每页都带首页风格（都想放个大 Hero）。不像能泛化的系统。
+          </p>
+          <div class="wires" aria-hidden="true">
+            {
+              [1, 2, 3].map(() => (
+                <div class="wire">
+                  <span class="w-hero" />
+                  <span class="w-line" style="width:70%" />
+                  <span class="w-line" style="width:50%" />
+                </div>
+              ))
+            }
+          </div>
+          <div class="wire-cap mono-sm">每页都是大 Hero，千篇一律</div>
+        </div>
+
+        <div class="band principles reveal" style="--d:.08s">
+          <div class="mono-label p-title">应对原则</div>
+          <ul>
+            {
+              tuningPrinciples.map(([pre, hi, post]) => (
+                <li>
+                  {pre}<b>{hi}</b>{post}
+                </li>
+              ))
+            }
+          </ul>
+          <div class="p-core">
+            核心：把 DESIGN.md 当成一个<span class="on-band-accent">可迭代的规则模型</span>来调。
+          </div>
+        </div>
+
+        <div class="card pad reveal" style="--d:.16s">
+          <div class="fit-head">
+            <span class="mono-sm fit-tag">UNDERFIT</span>
+            <span class="fit-title">欠拟合：放荡不羁</span>
+          </div>
+          <p class="fit-body">
+            Overview 写得太宽泛（「干净、大气、上档次」），页面虽满足约束，却各是各的风格
+            —— AI 自然退回最常见做法。
+          </p>
+          <div class="wires" aria-hidden="true">
+            <div class="wire">
+              <span class="w-hero soft" style="height:14px"></span>
+              <span class="w-line" style="width:80%"></span>
+            </div>
+            <div class="wire">
+              <span class="w-cols">
+                <span></span><span></span>
+              </span>
+              <span class="w-line" style="width:60%"></span>
+            </div>
+            <div class="wire">
+              <span class="w-line" style="width:90%"></span>
+              <span class="w-line" style="width:75%"></span>
+              <span class="w-line" style="width:85%"></span>
+            </div>
+          </div>
+          <div class="wire-cap mono-sm">各自为政，没有共同判断</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 09 Loop（深色） ============ -->
+    <section id="s09" class="frame band-frame">
+      <div class="frame-head band-head-line reveal">
+        <span class="fnum mono-sm on-band-accent">09</span>
+        <span class="fzh on-band">迭代 · Loop</span>
+        <span class="fen mono-label">The Loop</span>
+        <span class="phase mono-sm">目标 / 度量 / <b class="on-band-accent">迭代</b></span>
+      </div>
+      <h2 class="on-band reveal">把问题放回系统里</h2>
+
+      <div class="loop">
+        {
+          loopSteps.map((s, i) => (
+            <>
+              <div class="loop-step reveal" style={`--d:${i * 0.07}s`}>
+                <div class="mono-sm loop-idx">{String(i + 1).padStart(2, '0')}</div>
+                <p>{s}</p>
+              </div>
+              {i < loopSteps.length - 1 ? (
+                <span class="loop-arr" aria-hidden="true">→</span>
+              ) : (
+                <span class="loop-arr back" aria-hidden="true">↺</span>
+              )}
+            </>
+          ))
+        }
+      </div>
+
+      <div class="versions reveal">
+        <div class="v-head">
+          <span class="mono-label">Version Timeline</span>
+          <span class="v-rule"
+            >每 <span class="mono-accent on-band-accent">0.1</span> 解决一个大问题 · 每
+            <span class="mono-accent on-band-accent">0.01</span> 微调确认</span
+          >
+        </div>
+        <div class="v-line" role="img" aria-label="版本从 0.5 演进到 0.9">
+          <span class="mono-sm v-tag">0.5</span>
+          <div class="v-track">
+            <span class="v-node" style="left:25%"></span>
+            <span class="v-node" style="left:50%"></span>
+            <span class="v-node" style="left:75%"></span>
+          </div>
+          <span class="mono-sm v-tag end">0.9</span>
+        </div>
+        <p class="v-ps">
+          PS：此时恰逢 Loop Engineering 发布，也试过让 AI 自动跑这个闭环。但很快放弃了
+          —— 判断一张页面「哪里不对、为什么不对」，靠的是一种难以言说的设计直觉：<i
+            >It's ineffable</i
+          >。说不清楚，自然也教不会 AI。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 10 迭代实例 ============ -->
+    <section id="s10" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">10</span>
+        <span class="fzh">迭代 · 实例</span>
+        <span class="fen mono-label">Examples</span>
+        <span class="phase mono-sm">目标 / 度量 / <b>迭代</b></span>
+      </div>
+      <h2 class="reveal">解决的问题实例</h2>
+      <p class="frame-lead reveal">
+        不全盘放出所有迭代了。举两个有代表性的例子 ——
+        看一个问题如何被定位，又如何回到规则里被解决。
+      </p>
+      <div class="ex-grid">
+        {
+          examples.map((e, i) => (
+            <div class="card pad reveal" style={`--d:${i * 0.08}s`}>
+              <div class="mono-accent ex-ver">{e.ver}</div>
+              <div class="ex-title">{e.title}</div>
+              <div class="ex-rows">
+                {e.rows.map(([k, v]) => (
+                  <div class="ex-row">
+                    <span class="mono-sm ex-k">{k}</span>
+                    <span class="ex-v">{v}</span>
+                  </div>
+                ))}
+                <div class="ex-row verify">
+                  <span class="mono-sm ex-k">验证</span>
+                  <span class="ex-v">{e.verify}</span>
+                </div>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- ============ 11 成果 ============ -->
+    <section id="s11" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">11</span>
+        <span class="fzh">成果</span>
+        <span class="fen mono-label">Result</span>
+        <span class="phase mono-sm badge-ver">v0.9</span>
+      </div>
+      <h2 class="reveal">同一套判断，跑通了风格各异的页面</h2>
+      <p class="frame-lead reveal">
+        同一份 DESIGN.md，驱动了信息密度、布局、组件都不同的页面 ——
+        设计判断却始终一致。这正是开头那道难题的答案。
+      </p>
+      <div class="result-grid">
+        {
+          results.map((r, i) => (
+            <div class="reveal" style={`--d:${i * 0.08}s`}>
+              <MediaSlot label="替换为脱敏截图" ratio="4 / 5" />
+              <div class="r-cap">
+                <span class="mono-accent">{r.idx}</span>
+                <span class="r-zh">{r.zh}</span>
+                <span class="mono-sm r-en">{r.en}</span>
+              </div>
+              <p class="r-body">{r.body}</p>
+            </div>
+          ))
+        }
+      </div>
+      <div class="result-note reveal">
+        <span class="mono-label">Result</span>
+        <p>
+          输入固定化的页面结构文档，即可生成风格一致的界面。且有 DS 约束后，Claude Code
+          直接产出逼近 Claude Design，说明好的约束系统可以省去设计工作流的纠错。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 12 遗留问题 ============ -->
+    <section id="s12" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">12</span>
+        <span class="fzh">遗留问题</span>
+        <span class="fen mono-label">Open Issues</span>
+        <span class="phase mono-sm">尚未解决 · 2</span>
+      </div>
+      <h2 class="reveal">跑通之后，仍然悬而未决的几件事</h2>
+      <p class="frame-lead reveal">
+        并不是所有问题都有解法。以下两件依赖后续的模型更新、或额外的上下游工作流控制。先记下来，后续优化，不浪费多余的时间。
+      </p>
+      <div class="ex-grid">
+        {
+          issues.map((iss, i) => (
+            <div class="card pad issue reveal" style={`--d:${i * 0.08}s`}>
+              <div class="issue-head">
+                <span class="mono-accent">{iss.idx}</span>
+                <span class="badge">{iss.tag}</span>
+              </div>
+              <div class="ex-title">{iss.title}</div>
+              <p class="issue-body">{iss.body}</p>
+              <div class="issue-plan">
+                <div class="plan-head">
+                  <span class="mono-accent" aria-hidden="true">→</span>
+                  <span class="mono-label">设想方案</span>
+                </div>
+                <p>{iss.plan}</p>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- ============ 转场 One More Thing（深色居中） ============ -->
+    <section id="one-more-thing" class="frame band-frame interlude">
+      <div class="int-kicker mono-sm reveal">
+        <span class="int-line" aria-hidden="true"></span>
+        到这里，系统已经跑通
+        <span class="int-line" aria-hidden="true"></span>
+      </div>
+      <h2 class="int-title reveal" style="--d:.1s">One more thing.</h2>
+      <p class="int-sub reveal" style="--d:.2s">
+        接下来要讲的，不是一个新项目 —— 而是同一套方法的<b>第二次运用</b>。真正的成果，藏在这里。
+      </p>
+    </section>
+
+    <!-- ============ 13 复用 ============ -->
+    <section id="s13" class="frame">
+      <div class="frame-head reveal">
+        <span class="fnum mono-sm">13</span>
+        <span class="fzh">Explode</span>
+        <span class="fen mono-label">Reuse</span>
+      </div>
+      <div class="mono-accent quote reveal">「同一种招式，对圣斗士不会第二次奏效」</div>
+      <h2 class="reveal">到了第二次，只需复用方法</h2>
+      <p class="frame-lead reveal">
+        后来设计语言想调整，但不必重走全程 —— 已经有过一版「理想
+        DESIGN.md」。只更新两块，其余让 AI
+        按既有结构自行推导；甚至把上一轮的迭代笔记也喂进去，让它主动避开已知的坑。
+      </p>
+      <div class="reuse-grid">
+        <div class="card pad reveal">
+          <div class="mono-label ru-label">第一次 · RUN FULL</div>
+          <div class="ru-title">跑通设计系统</div>
+          <div class="ru-flow mono-sm">
+            <span class="ru-pill">目标</span><span>→</span>
+            <span class="ru-pill">度量</span><span>→</span>
+            <span class="ru-pill">Origin</span><span>→</span>
+            <span class="ru-pill">Loop ×N</span>
+          </div>
+        </div>
+        <div class="card pad reuse-hi reveal" style="--d:.08s">
+          <div class="mono-label ru-label accent">第二次 · REUSE METHOD</div>
+          <div class="ru-title">复用迭代方法</div>
+          <div class="ru-flow mono-sm">
+            <span class="ru-pill hi">改 Button</span><span>+</span>
+            <span class="ru-pill hi">改 Overview</span><span>→</span>
+            <span class="ru-pill hi">AI 自行推导</span>
+          </div>
+        </div>
+      </div>
+      <p class="reuse-line reveal">
+        第一次跑通的是<span class="accent-text">设计系统</span>，第二次复用的是这套<span
+          class="accent-text">迭代方法</span
+        > —— AI 时代，不做重复的事。
+      </p>
+    </section>
+
+    <!-- ============ 14 收尾 ============ -->
+    <section id="s14" class="frame closing">
+      <div class="cover-top reveal">
+        <span class="mono-sm kicker">Closing Insight</span>
+        <span class="mono-sm pager">14 / 14</span>
+      </div>
+      <h2 class="reveal">从交付物，到可运行的约束系统</h2>
+      <p class="frame-lead reveal">真正跑通的不是某一份 DESIGN.md，而是一种新的设计方式。</p>
+      <div class="insights">
+        {
+          closingInsights.map((ins, i) => (
+            <div class="ins reveal" style={`--d:${i * 0.08}s`}>
+              <div class="mono-accent">{String(i + 1).padStart(2, '0')}</div>
+              <p>{ins}</p>
+            </div>
+          ))
+        }
+      </div>
+      <div class="final reveal">
+        <p>之后每次再面对类似问题，都能<span class="accent-text">站在过往自己的肩膀上</span>。</p>
+      </div>
+    </section>
+
+    <nav class="case-next reveal" aria-label="继续浏览">
+      <a class="card next-card" href="/work/other/">
+        <div>
+          <div class="hint">Other Work</div>
+          <div class="name">其他作品 —— Figma 插件 · 技术分享 · 动效设计</div>
+        </div>
+        <span class="go" aria-hidden="true">→</span>
+      </a>
+    </nav>
+  </article>
+</Base>
+
+<style>
+  .ds-case {
+    padding-top: clamp(104px, 13vw, 152px);
+  }
+
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+    transition: color 0.2s ease;
+  }
+
+  .back .arr {
+    transition: transform 0.25s var(--ease-out);
+  }
+
+  .back:hover {
+    color: var(--text);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .back:hover .arr {
+      transform: translateX(-3px);
+    }
+  }
+
+  .back:active .arr {
+    transform: translateX(-5px);
+  }
+
+  /* ---- 分幕通用 ---- */
+  .frame {
+    padding: clamp(44px, 6.5vw, 80px) 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .frame:last-of-type {
+    border-bottom: none;
+  }
+
+  .frame-head {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: clamp(32px, 5vw, 52px);
+    flex-wrap: wrap;
+  }
+
+  .fnum {
+    color: var(--accent);
+  }
+
+  .fzh {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-2);
+  }
+
+  .fen {
+    letter-spacing: 0.18em;
+  }
+
+  .phase {
+    margin-left: auto;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+
+  .phase b {
+    color: var(--accent-strong);
+    font-weight: 500;
+  }
+
+  .badge-ver {
+    margin-left: auto;
+    color: var(--accent-strong);
+    border: 1px solid var(--accent-border);
+    border-radius: 3px;
+    padding: 4px 10px;
+    letter-spacing: 0.06em;
+  }
+
+  .frame h2 {
+    font-size: clamp(27px, 4vw, 42px);
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+    max-width: 24ch;
+  }
+
+  .frame-lead {
+    font-size: clamp(16px, 1.9vw, 18.5px);
+    line-height: 1.74;
+    color: var(--text-2);
+    max-width: 62ch;
+    margin-bottom: clamp(30px, 4.5vw, 48px);
+  }
+
+  .frame-lead strong {
+    color: var(--text);
+  }
+
+  .card.pad {
+    padding: 32px 32px 34px;
+  }
+
+  .card.pad-sm {
+    padding: 22px 24px;
+  }
+
+  .card-kicker {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .tri-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr));
+    gap: 16px;
+  }
+
+  .tri-grid h3 {
+    font-size: 21px;
+    margin-bottom: 12px;
+  }
+
+  .tri-grid p {
+    font-size: 14.5px;
+    color: var(--text-2);
+  }
+
+  /* ---- 01 封面 ---- */
+  .cover {
+    padding-top: clamp(28px, 4vw, 48px);
+  }
+
+  .cover-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: clamp(36px, 6vw, 72px);
+  }
+
+  .kicker {
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .pager {
+    letter-spacing: 0.1em;
+    color: var(--text-mono);
+  }
+
+  .cover h1 {
+    font-size: clamp(34px, 5.6vw, 60px);
+    line-height: 1.16;
+    max-width: 22ch;
+    margin-bottom: 26px;
+  }
+
+  .cover-sub {
+    max-width: 58ch;
+  }
+
+  .cover-sub strong {
+    color: var(--text);
+  }
+
+  .takeaway {
+    margin-top: clamp(36px, 5.5vw, 60px);
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+  }
+
+  .takeaway .mono-label {
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .takeaway p {
+    font-size: clamp(19px, 2.6vw, 25px);
+    line-height: 1.58;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    max-width: 44ch;
+  }
+
+  .viewpoint {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: clamp(32px, 5vw, 52px);
+    font-size: 15px;
+    color: var(--text-2);
+  }
+
+  .vsep {
+    width: 1px;
+    height: 13px;
+    background: var(--border-strong);
+  }
+
+  .credit {
+    margin-top: 24px;
+    color: var(--text-mono);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---- 03 问题 ---- */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(30px, 5vw, 64px);
+    align-items: center;
+  }
+
+  @media (max-width: 860px) {
+    .problem-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .project-zero {
+    margin-top: 34px;
+    padding-top: 30px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .pz-head {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 14px;
+    color: var(--accent-strong);
+    letter-spacing: 0.06em;
+  }
+
+  .pz-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .project-zero p {
+    font-size: 15px;
+    color: var(--text-2);
+    max-width: 54ch;
+  }
+
+  /* AI 味反例 mock */
+  .ai-mock {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 18px 40px -18px rgba(80, 70, 229, 0.35);
+  }
+
+  .ai-mock-badge {
+    position: absolute;
+    top: 13px;
+    right: 13px;
+    z-index: 3;
+    color: #fff;
+    background: oklch(0.55 0.2 25);
+    padding: 4px 9px;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+  }
+
+  .chrome {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 11px 14px;
+    background: oklch(0.96 0.004 264);
+    border-bottom: 1px solid oklch(0.91 0.004 264);
+  }
+
+  .cdot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+
+  .curl {
+    margin-left: 10px;
+    font-size: 9.5px;
+    color: oklch(0.62 0.01 264);
+  }
+
+  .ai-hero {
+    background: linear-gradient(120deg, #6366f1 0%, #7c3aed 45%, #4f46e5 100%);
+    padding: 34px 28px 32px;
+    text-align: center;
+    color: #fff;
+  }
+
+  .ai-pill {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 100px;
+    padding: 4px 12px;
+    margin-bottom: 16px;
+  }
+
+  .ai-title {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+  }
+
+  .ai-sub {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.82);
+    max-width: 300px;
+    margin: 0 auto 18px;
+  }
+
+  .ai-ctas {
+    display: flex;
+    gap: 9px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .ai-btn-w {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4f46e5;
+    background: #fff;
+    border-radius: 8px;
+    padding: 9px 18px;
+  }
+
+  .ai-btn-o {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    padding: 9px 18px;
+  }
+
+  .ai-tiles {
+    display: flex;
+    gap: 11px;
+    padding: 20px 20px 24px;
+    background: #fff;
+  }
+
+  .ai-tile {
+    flex: 1;
+    border: 1px solid oklch(0.92 0.004 264);
+    border-left-width: 3px;
+    border-left-style: solid;
+    border-radius: 10px;
+    padding: 13px 12px;
+  }
+
+  .ai-tile .emoji {
+    font-size: 17px;
+    margin-bottom: 7px;
+  }
+
+  .ai-tile .metric {
+    font-size: 15px;
+    font-weight: 800;
+    color: #4f46e5;
+  }
+
+  .ai-tile .desc {
+    font-size: 10px;
+    color: oklch(0.52 0.012 264);
+    margin-top: 2px;
+  }
+
+  .anti-caption {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-top: 16px;
+  }
+
+  .anti-caption .x {
+    color: var(--danger);
+    flex-shrink: 0;
+  }
+
+  .anti-caption p {
+    font-size: 11px;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+    color: var(--text-3);
+  }
+
+  /* ---- 04 框架 ---- */
+  .fw-grid {
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .fw-card {
+    flex: 1;
+    min-width: min(250px, 100%);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .fw-label {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+
+  .fw-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin-bottom: 14px;
+  }
+
+  .fw-card p {
+    font-size: 15px;
+    color: var(--text-2);
+    margin-bottom: 26px;
+  }
+
+  .fw-ref {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-3);
+    letter-spacing: 0.02em;
+  }
+
+  .fw-arr {
+    align-self: center;
+    color: var(--text-3);
+    font-size: 24px;
+  }
+
+  .fw-arr.accent {
+    color: var(--accent);
+  }
+
+  @media (max-width: 900px) {
+    .fw-arr {
+      display: none;
+    }
+  }
+
+  /* ---- 深色分幕 ---- */
+  .band-frame {
+    background: var(--band-bg);
+    border-radius: var(--radius);
+    border-bottom: none;
+    padding: clamp(40px, 6vw, 72px) clamp(24px, 4.5vw, 60px);
+    margin: clamp(44px, 6.5vw, 80px) calc(-1 * clamp(0px, 2vw, 24px));
+  }
+
+  .band-head-line {
+    border-bottom-color: var(--band-border);
+  }
+
+  .on-band {
+    color: var(--band-text);
+  }
+
+  .on-band-2 {
+    color: var(--band-text-2);
+  }
+
+  .on-band-accent {
+    color: var(--band-accent);
+  }
+
+  .band-frame .fen,
+  .band-frame .phase {
+    color: var(--band-text-3);
+  }
+
+  .band-frame .phase b {
+    color: var(--band-accent-2);
+  }
+
+  .band-frame h2 {
+    color: var(--band-text);
+  }
+
+  .band-frame .frame-lead {
+    color: var(--band-text-2);
+  }
+
+  /* ---- 05 三层约束 ---- */
+  .goal-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.25fr);
+    gap: clamp(30px, 5vw, 64px);
+    align-items: center;
+  }
+
+  @media (max-width: 900px) {
+    .goal-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .layers {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .layer {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    border: 1px solid var(--band-border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    background: var(--band-surface);
+  }
+
+  .layer-accent {
+    border-color: oklch(0.45 0.13 262);
+    background: oklch(0.27 0.05 262);
+  }
+
+  .layer-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .lk {
+    letter-spacing: 0.1em;
+    color: var(--band-text-2);
+  }
+
+  .layer-accent .lk {
+    color: var(--band-accent-2);
+  }
+
+  .ln {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--band-text);
+  }
+
+  .layer p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--band-text-2);
+  }
+
+  .layer-accent p {
+    color: oklch(0.8 0.03 262);
+  }
+
+  .meters {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+    width: 118px;
+  }
+
+  .meter-label {
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    color: var(--band-text-3);
+    margin-bottom: 5px;
+  }
+
+  .dots {
+    display: flex;
+    gap: 5px;
+  }
+
+  .pt {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--band-border);
+  }
+
+  .pt.on {
+    background: var(--band-accent);
+  }
+
+  .pt.danger.on {
+    background: oklch(0.62 0.13 28);
+  }
+
+  .layers-note {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    color: var(--band-text-3);
+    letter-spacing: 0.02em;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 560px) {
+    .layer {
+      flex-direction: column;
+    }
+
+    .meters {
+      flex-direction: row;
+      width: auto;
+      gap: 24px;
+    }
+  }
+
+  /* ---- 06 工具表 ---- */
+  .tool-table {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 38px;
+    background: var(--surface);
+  }
+
+  .tt-row {
+    display: grid;
+    grid-template-columns: 180px 130px minmax(0, 1fr);
+    gap: 16px;
+    padding: 20px 26px;
+    border-bottom: 1px solid var(--border-subtle);
+    align-items: center;
+  }
+
+  .tt-row:last-child {
+    border-bottom: none;
+  }
+
+  .tt-head {
+    padding: 13px 26px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tt-head .mono-label {
+    letter-spacing: 0.12em;
+  }
+
+  .tt-name {
+    font-weight: 500;
+    font-size: 14.5px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+
+  .tt-check {
+    color: var(--accent-strong);
+    font-size: 11px;
+  }
+
+  .tt-verdict {
+    font-size: 13.5px;
+    color: var(--danger);
+    font-weight: 500;
+  }
+
+  .tt-verdict.good {
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+
+  .tt-why {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-2);
+  }
+
+  .tt-row.chosen {
+    background: var(--surface-accent);
+  }
+
+  .tt-row.chosen .tt-why {
+    color: var(--accent-deep);
+  }
+
+  @media (max-width: 700px) {
+    .tt-row {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+  }
+
+  .checks-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .checks-note {
+    font-size: 13px;
+    color: var(--text-3);
+  }
+
+  .checks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 14px;
+  }
+
+  .check {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 17px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: 15px;
+  }
+
+  /* ---- 07 Origin ---- */
+  .origin-intro {
+    margin-bottom: 40px;
+  }
+
+  .group-label {
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .lever-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    gap: 16px;
+    margin-bottom: 44px;
+  }
+
+  .lever {
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 26px 28px;
+    background: var(--surface-accent);
+  }
+
+  .lever-name {
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--accent-deep);
+    margin-bottom: 6px;
+  }
+
+  .lever-sub {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent-strong);
+    margin-bottom: 12px;
+  }
+
+  .lever p {
+    font-size: 14px;
+    color: var(--text-2);
+  }
+
+  .origin-flow {
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .of-step {
+    flex: 1;
+    min-width: min(220px, 100%);
+  }
+
+  .of-step.wide {
+    flex: 1.3;
+  }
+
+  .of-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .of-name {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .of-tool {
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+
+  .of-step p {
+    font-size: 13.5px;
+    color: var(--text-2);
+  }
+
+  .of-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .of-pills .chip {
+    font-size: 13px;
+  }
+
+  .of-step.dark {
+    border: 1px solid var(--band-border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    background: var(--band-bg);
+    color: var(--band-text);
+  }
+
+  .of-step.dark .of-name {
+    color: var(--band-text);
+  }
+
+  .of-ver {
+    color: var(--band-accent);
+    letter-spacing: 0.1em;
+  }
+
+  .of-step.dark p {
+    color: var(--band-text-2);
+  }
+
+  /* ---- 08 过拟合 ---- */
+  .fit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    gap: 18px;
+    align-items: stretch;
+  }
+
+  .fit-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .fit-tag {
+    color: var(--danger);
+    letter-spacing: 0.06em;
+  }
+
+  .fit-title {
+    font-size: 17.5px;
+    font-weight: 600;
+  }
+
+  .fit-body {
+    font-size: 14.5px;
+    color: var(--text-2);
+    margin-bottom: 24px;
+  }
+
+  .wires {
+    display: flex;
+    gap: 9px;
+  }
+
+  .wire {
+    flex: 1;
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    padding: 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .w-hero {
+    display: block;
+    height: 18px;
+    border-radius: 2px;
+    background: oklch(0.8 0.05 262);
+    margin-bottom: 3px;
+  }
+
+  .w-hero.soft {
+    background: var(--border-strong);
+  }
+
+  .w-line {
+    display: block;
+    height: 5px;
+    border-radius: 2px;
+    background: var(--border-subtle);
+  }
+
+  .w-cols {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 2px;
+  }
+
+  .w-cols span {
+    flex: 1;
+    height: 24px;
+    border-radius: 2px;
+    background: var(--border-strong);
+  }
+
+  .wire-cap {
+    margin-top: 10px;
+    color: var(--text-mono);
+    font-size: 10.5px;
+  }
+
+  .principles {
+    padding: 28px 30px;
+  }
+
+  .p-title {
+    color: var(--band-accent) !important;
+    letter-spacing: 0.16em;
+    margin-bottom: 22px;
+  }
+
+  .principles ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .principles li {
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: oklch(0.84 0.008 264);
+  }
+
+  .principles b {
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .p-core {
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px solid var(--band-border);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--band-text-2);
+  }
+
+  /* ---- 09 Loop ---- */
+  .loop {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+  }
+
+  .loop-step {
+    flex: 1;
+    min-width: min(180px, 100%);
+  }
+
+  .loop-idx {
+    color: var(--band-accent);
+    margin-bottom: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .loop-step p {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: oklch(0.86 0.008 264);
+  }
+
+  .loop-arr {
+    align-self: flex-start;
+    padding-top: 2px;
+    color: var(--band-text-3);
+    font-size: 17px;
+  }
+
+  .loop-arr.back {
+    color: var(--band-accent);
+  }
+
+  @media (max-width: 860px) {
+    .loop {
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .loop-arr {
+      display: none;
+    }
+  }
+
+  .versions {
+    padding-top: 40px;
+    border-top: 1px solid var(--band-border);
+  }
+
+  .v-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .v-rule {
+    font-size: 13.5px;
+    color: var(--band-text-2);
+  }
+
+  .v-line {
+    display: flex;
+    align-items: center;
+    margin-bottom: 26px;
+  }
+
+  .v-tag {
+    color: var(--band-accent-2);
+    font-weight: 500;
+    font-size: 15px;
+  }
+
+  .v-tag.end {
+    font-weight: 600;
+  }
+
+  .v-track {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(to right, oklch(0.45 0.1 262), oklch(0.7 0.15 262));
+    margin: 0 16px;
+    position: relative;
+  }
+
+  .v-node {
+    position: absolute;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--band-bg);
+    border: 2px solid oklch(0.62 0.13 262);
+    transform: translateX(-50%);
+  }
+
+  .v-ps {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--band-text-3);
+    max-width: 84ch;
+  }
+
+  .v-ps i {
+    color: var(--band-text-2);
+  }
+
+  /* ---- 10/12 实例卡 ---- */
+  .ex-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: 18px;
+  }
+
+  .ex-ver {
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .ex-title {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 22px;
+  }
+
+  .ex-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .ex-row {
+    display: flex;
+    gap: 16px;
+  }
+
+  .ex-k {
+    color: var(--text-mono);
+    letter-spacing: 0.06em;
+    width: 42px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .ex-v {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-2);
+  }
+
+  .ex-row.verify {
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .ex-row.verify .ex-k {
+    color: var(--accent-strong);
+  }
+
+  .ex-row.verify .ex-v {
+    color: var(--accent-deep);
+    font-weight: 500;
+  }
+
+  /* ---- 11 成果 ---- */
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 20px;
+  }
+
+  .r-cap {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .r-zh {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .r-en {
+    color: var(--text-mono);
+  }
+
+  .r-body {
+    font-size: 13.5px;
+    color: var(--text-3);
+    margin-top: 6px;
+  }
+
+  .result-note {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin-top: 34px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .result-note .mono-label {
+    color: var(--accent-strong);
+    padding-top: 3px;
+  }
+
+  .result-note p {
+    font-size: 14px;
+    color: var(--text-2);
+    max-width: 80ch;
+  }
+
+  /* ---- 12 issues ---- */
+  .issue-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .issue-body {
+    font-size: 14.5px;
+    color: var(--text-2);
+    margin-bottom: 26px;
+  }
+
+  .issue-plan {
+    padding-top: 22px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .plan-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .plan-head .mono-label {
+    color: var(--accent-strong);
+  }
+
+  .issue-plan p {
+    font-size: 14px;
+    color: var(--text-2);
+  }
+
+  /* ---- 转场 ---- */
+  .interlude {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: min(72svh, 620px);
+  }
+
+  .int-kicker {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--band-text-3);
+    margin-bottom: 40px;
+  }
+
+  .int-line {
+    width: 40px;
+    height: 1px;
+    background: var(--band-border);
+  }
+
+  .int-title {
+    font-size: clamp(44px, 8vw, 76px);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    color: var(--band-accent-2);
+    margin-bottom: 32px;
+    max-width: none;
+  }
+
+  .int-sub {
+    font-size: clamp(17px, 2.4vw, 22px);
+    line-height: 1.62;
+    color: oklch(0.8 0.01 264);
+    max-width: 34em;
+  }
+
+  .int-sub b {
+    color: #fff;
+    font-weight: 500;
+  }
+
+  /* ---- 13 复用 ---- */
+  .quote {
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    margin-bottom: 16px;
+  }
+
+  .reuse-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: 18px;
+    margin-bottom: 36px;
+  }
+
+  .ru-label {
+    letter-spacing: 0.1em;
+    margin-bottom: 18px;
+  }
+
+  .ru-label.accent {
+    color: var(--accent-strong);
+  }
+
+  .ru-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 18px;
+  }
+
+  .reuse-hi {
+    border-color: var(--accent);
+    background: var(--surface-accent);
+  }
+
+  .ru-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    color: var(--text-3);
+  }
+
+  .ru-pill {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px 10px;
+    color: var(--text-2);
+  }
+
+  .ru-pill.hi {
+    border-color: var(--accent-border);
+    background: var(--surface);
+    color: var(--accent-deep);
+  }
+
+  .reuse-line {
+    font-size: clamp(17px, 2.4vw, 23px);
+    line-height: 1.55;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    max-width: 40em;
+  }
+
+  /* ---- 14 收尾 ---- */
+  .closing .cover-top {
+    margin-bottom: clamp(32px, 5vw, 56px);
+  }
+
+  .insights {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+    gap: 0;
+    margin: clamp(36px, 5vw, 56px) 0;
+  }
+
+  .ins {
+    padding: 0 clamp(24px, 4vw, 48px);
+    border-left: 1px solid var(--border);
+  }
+
+  .ins:first-child {
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .ins .mono-accent {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  .ins p {
+    font-size: 15.5px;
+    line-height: 1.74;
+    color: var(--text);
+  }
+
+  @media (max-width: 860px) {
+    .ins {
+      border-left: none;
+      padding: 20px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .ins:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+  }
+
+  .final {
+    padding-top: clamp(32px, 5vw, 48px);
+    border-top: 1px solid var(--border-strong);
+  }
+
+  .final p {
+    font-size: clamp(21px, 3vw, 28px);
+    line-height: 1.45;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    max-width: 34em;
+  }
+
+  .case-next {
+    margin: clamp(40px, 6vw, 64px) 0 0;
+    display: grid;
+  }
+</style>

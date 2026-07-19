@@ -1,0 +1,43 @@
+---
+/**
+ * Phosphor Icons(https://phosphoricons.com,MIT)内联组件。
+ * 构建时从 @phosphor-icons/core 读取 regular 权重 SVG,零运行时开销。
+ * 新增图标：在下方 import 并登记进 icons 映射即可。
+ */
+import sun from '@phosphor-icons/core/assets/regular/sun.svg?raw';
+import moon from '@phosphor-icons/core/assets/regular/moon.svg?raw';
+import caretDown from '@phosphor-icons/core/assets/regular/caret-down.svg?raw';
+import arrowDown from '@phosphor-icons/core/assets/regular/arrow-down.svg?raw';
+import arrowRight from '@phosphor-icons/core/assets/regular/arrow-right.svg?raw';
+import arrowUpRight from '@phosphor-icons/core/assets/regular/arrow-up-right.svg?raw';
+import figmaLogo from '@phosphor-icons/core/assets/regular/figma-logo.svg?raw';
+import githubLogo from '@phosphor-icons/core/assets/regular/github-logo.svg?raw';
+import appStoreLogo from '@phosphor-icons/core/assets/regular/app-store-logo.svg?raw';
+
+const icons = {
+  sun,
+  moon,
+  'caret-down': caretDown,
+  'arrow-down': arrowDown,
+  'arrow-right': arrowRight,
+  'arrow-up-right': arrowUpRight,
+  'figma-logo': figmaLogo,
+  'github-logo': githubLogo,
+  'app-store-logo': appStoreLogo,
+};
+
+interface Props {
+  name: keyof typeof icons;
+  /** 像素尺寸，默认 16 */
+  size?: number;
+  class?: string;
+}
+
+const { name, size = 16, class: className } = Astro.props;
+const svg = icons[name].replace(
+  '<svg ',
+  `<svg width="${size}" height="${size}" aria-hidden="true"${className ? ` class="${className}"` : ''} `
+);
+---
+
+<Fragment set:html={svg} />
