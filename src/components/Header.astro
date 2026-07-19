@@ -31,6 +31,12 @@ const activeId = path.startsWith('/blog')
       : path.startsWith('/design')
         ? 'design'
         : null;
+const isHome = path === '/';
+const currentLabel = activeId
+  ? nav.find((item) => item.id === activeId)?.label
+  : isHome
+    ? '首页'
+    : '导航';
 ---
 
 <header class="site-header" data-scrollspy={scrollspy ? 'true' : undefined}>
@@ -40,7 +46,7 @@ const activeId = path.startsWith('/blog')
       <span class="divider" aria-hidden="true">/</span>
       <span class="en mono-sm">AARON XU</span>
     </a>
-    <nav aria-label="主导航">
+    <nav class="desktop-nav" aria-label="主导航">
       <div class="nav-drop">
         <a class="trigger" href="/#about" aria-haspopup="true">
           首页
@@ -72,6 +78,7 @@ const activeId = path.startsWith('/blog')
         <Icon name="arrow-down" size={12} class="down" />
       </a>
     </nav>
+    <span class="mobile-current" data-mobile-current>{currentLabel}</span>
     <button
       id="theme-toggle"
       type="button"
@@ -81,6 +88,52 @@ const activeId = path.startsWith('/blog')
       <span class="icon-sun"><Icon name="sun" size={16} /></span>
       <span class="icon-moon"><Icon name="moon" size={16} /></span>
     </button>
+    <button
+      id="mobile-nav-toggle"
+      type="button"
+      aria-label="打开导航菜单"
+      aria-controls="mobile-nav"
+      aria-expanded="false"
+    >
+      <span class="icon-menu"><Icon name="list" size={20} /></span>
+      <span class="icon-close"><Icon name="x" size={20} /></span>
+    </button>
+  </div>
+  <div id="mobile-nav" class="mobile-nav-layer" aria-hidden="true">
+    <nav class="mobile-nav-menu" aria-label="移动端主导航">
+      <div class="mobile-nav-primary">
+        <a href="/" class:list={{ active: isHome }} data-mobile-label="首页">
+          <span>首页</span><span class="mono-sm">HOME</span>
+        </a>
+        {
+          nav.map((item) => (
+            <a
+              href={item.href}
+              data-nav={item.id}
+              data-mobile-label={item.label}
+              class:list={{ active: item.id === activeId }}
+            >
+              <span>{item.label}</span><span class="mono-sm">{item.id.toUpperCase()}</span>
+            </a>
+          ))
+        }
+        <a href="/#contact" data-nav="contact" data-mobile-label="联系我">
+          <span>联系我</span><span class="mono-sm">CONTACT</span>
+        </a>
+      </div>
+      <div class="mobile-home-group">
+        <div class="mobile-group-label mono-sm">首页章节</div>
+        <div class="mobile-home-links">
+          {
+            homeMenu.map((item) => (
+              <a href={item.href} data-nav={item.id} data-mobile-label={item.label}>
+                {item.label}
+              </a>
+            ))
+          }
+        </div>
+      </div>
+    </nav>
   </div>
 </header>
 
@@ -91,6 +144,8 @@ const activeId = path.startsWith('/blog')
     z-index: 50;
     border-bottom: 1px solid transparent;
     transition: border-color 0.3s ease, background-color 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .site-header.scrolled {
@@ -128,14 +183,14 @@ const activeId = path.startsWith('/blog')
     letter-spacing: 0.14em;
   }
 
-  nav {
+  .desktop-nav {
     display: flex;
     align-items: center;
     gap: clamp(4px, 1.6vw, 10px);
     margin-left: auto;
   }
 
-  nav a {
+  .desktop-nav a {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -148,17 +203,12 @@ const activeId = path.startsWith('/blog')
     white-space: nowrap;
   }
 
-  nav a:hover {
-    color: var(--text);
-    background: color-mix(in oklch, var(--text) 6%, transparent);
-  }
-
-  nav a:active {
+  .desktop-nav a:active {
     color: var(--text);
     background: color-mix(in oklch, var(--text) 9%, transparent);
   }
 
-  nav a.active {
+  .desktop-nav a.active {
     color: var(--accent-strong);
     font-weight: 500;
   }
@@ -201,14 +251,12 @@ const activeId = path.startsWith('/blog')
     height: 8px;
   }
 
-  .nav-drop:hover .menu,
   .nav-drop:focus-within .menu {
     opacity: 1;
     transform: none;
     pointer-events: auto;
   }
 
-  .nav-drop:hover .trigger :global(.caret),
   .nav-drop:focus-within .trigger :global(.caret) {
     transform: rotate(180deg);
   }
@@ -231,6 +279,21 @@ const activeId = path.startsWith('/blog')
   }
 
   @media (hover: hover) and (pointer: fine) {
+    .desktop-nav a:hover {
+      color: var(--text);
+      background: color-mix(in oklch, var(--text) 6%, transparent);
+    }
+
+    .nav-drop:hover .menu {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+
+    .nav-drop:hover .trigger :global(.caret) {
+      transform: rotate(180deg);
+    }
+
     .contact-link:hover :global(.down) {
       transform: translateY(2px);
       color: var(--accent-strong);
@@ -251,13 +314,10 @@ const activeId = path.startsWith('/blog')
     transition: border-color 0.2s ease, color 0.2s ease, transform 0.3s var(--ease-out);
   }
 
-  #theme-toggle:hover {
-    color: var(--text);
-    border-color: var(--text-3);
-  }
-
   @media (hover: hover) and (pointer: fine) {
     #theme-toggle:hover {
+      color: var(--text);
+      border-color: var(--text-3);
       transform: none;
     }
   }
@@ -283,6 +343,18 @@ const activeId = path.startsWith('/blog')
     display: none !important;
   }
 
+  .mobile-current,
+  #mobile-nav-toggle,
+  .mobile-nav-layer {
+    display: none;
+  }
+
+  .site-header a,
+  .site-header button {
+    touch-action: manipulation;
+    -webkit-user-drag: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .nav-drop .menu {
       transition: opacity 0.18s ease;
@@ -290,24 +362,182 @@ const activeId = path.startsWith('/blog')
     }
   }
 
-  @media (max-width: 560px) {
+  @media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    .site-header,
+    .site-header.scrolled,
+    .site-header.menu-open {
+      background: var(--header-bg);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      border-bottom-color: var(--border);
+    }
+
+    .inner {
+      gap: 8px;
+    }
+
     .brand .en,
     .brand .divider {
       display: none;
     }
 
-    nav {
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    nav::-webkit-scrollbar {
+    .desktop-nav {
       display: none;
     }
 
-    nav a {
-      font-size: 13.5px;
-      padding: 7px 7px;
+    .mobile-current {
+      display: block;
+      min-width: 0;
+      margin-left: auto;
+      overflow: hidden;
+      color: var(--text-3);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.06em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #theme-toggle,
+    #mobile-nav-toggle {
+      width: 44px;
+      height: 44px;
+    }
+
+    #mobile-nav-toggle {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text-2);
+    }
+
+    #mobile-nav-toggle:active {
+      transform: scale(0.94);
+    }
+
+    #mobile-nav-toggle .icon-menu,
+    #mobile-nav-toggle .icon-close {
+      display: inline-flex;
+    }
+
+    #mobile-nav-toggle .icon-close,
+    #mobile-nav-toggle[aria-expanded='true'] .icon-menu {
+      display: none;
+    }
+
+    #mobile-nav-toggle[aria-expanded='true'] .icon-close {
+      display: inline-flex;
+    }
+
+    .mobile-nav-layer {
+      position: absolute;
+      inset: 60px 0 auto;
+      display: block;
+      height: calc(100dvh - 60px);
+      visibility: hidden;
+      overflow: hidden;
+      background: var(--bg);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-8px);
+      transition: opacity 0.18s ease, transform 0.18s var(--ease-out), visibility 0.18s;
+    }
+
+    .mobile-nav-layer.open {
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+    }
+
+    .mobile-nav-menu {
+      width: min(var(--w-page), 100% - 2 * var(--gutter));
+      height: 100%;
+      margin-inline: auto;
+      padding: 20px 0 max(28px, env(safe-area-inset-bottom));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-nav-primary {
+      border-top: 1px solid var(--border);
+    }
+
+    .mobile-nav-primary a {
+      display: flex;
+      min-height: 56px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .mobile-nav-primary a .mono-sm {
+      color: var(--text-mono);
+      font-size: 10.5px;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+    }
+
+    .mobile-nav-primary a.active,
+    .mobile-nav-primary a:active {
+      color: var(--accent-strong);
+    }
+
+    .mobile-home-group {
+      padding-top: 26px;
+    }
+
+    .mobile-group-label {
+      margin-bottom: 10px;
+      color: var(--text-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+
+    .mobile-home-links {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mobile-home-links a {
+      display: inline-flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      color: var(--text-2);
+      font-size: 14px;
+    }
+
+    .mobile-home-links a.active,
+    .mobile-home-links a:active {
+      border-color: var(--accent-border);
+      color: var(--accent-strong);
+      background: var(--surface-accent);
+    }
+
+    :global(html.mobile-nav-open),
+    :global(html.mobile-nav-open body) {
+      overflow: hidden;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-nav-layer {
+      transition: none;
+      transform: none;
     }
   }
 </style>

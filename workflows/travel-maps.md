@@ -1,7 +1,7 @@
 # travel-maps · 等时旅行地图 工具档案
 
 「出发吧打工人！」，创意致敬 https://travel-maps.nazha.co/ (原版「从杭州出发」，静态站托管在 Vercel，未找到公开仓库；页面右下角已附致谢链接)。
-本站版本位于 `public/tools/travel-maps/`，为独立实现并扩展：**多出发城市**(上海/杭州，默认上海)+ 逐城攻略手账。纯静态壳，从 /products/ 列表以新标签页打开，**不遵守主站设计规范**(见 AGENTS.md 硬性规则 2)。
+本站版本位于 `public/tools/travel-maps/`，为独立实现并扩展：**多出发城市**(上海/北京/广州/深圳/杭州，默认上海)+ 逐城攻略手账。纯静态壳，从 /products/ 列表以新标签页打开，**不遵守主站设计规范**(见 AGENTS.md 硬性规则 2)。
 
 ## 出发城市与 URL
 
@@ -19,7 +19,8 @@
 | `js/map.js` | D3 地图引擎：Albers 投影、手绘抖动/水彩滤镜、等时圈栅格采样 + `d3.contours`、城市贴纸、缩放 LOD。数据经 `init({ data })` 注入，引擎本身不感知出发城市 |
 | `js/panel.js` | 城市手账面板：交通票根对比、推荐理由、景点贴纸、逐日行程 |
 | `data/cities.js` | **基础数据源**：`CITY_DATA_HANGZHOU`(190 个目的地城市的完整攻略 + 杭州端交通与接驳常量)。攻略内容(spots/itinerary/tips)为各出发城市共用 |
-| `data/cities-shanghai.js` | **上海端覆盖**：`CITY_DATA_SHANGHAI`。只登记每个目的地的 `transport`/`recommend`(+ 可选 hook/tagline/tips/label/minK 覆盖)，攻略内容沿用 cities.js；并新增「杭州」目的地条目、剔除「上海」 |
+| `data/cities-shanghai.js` | **上海端覆盖**：`CITY_DATA_SHANGHAI`。只登记每个目的地的 `transport`/`recommend`(+ 可选 hook/tagline/tips/label/minK 覆盖)，攻略内容沿用 cities.js；剔除「上海」。**同时定义共享常量 `HANGZHOU_DEST_BASE`**(杭州作为目的地的内容，各出发城市数据文件共用，故加载顺序上必须先于其他 cities-*.js) |
+| `data/cities-beijing.js` `data/cities-guangzhou.js` `data/cities-shenzhen.js` | 北京/广州/深圳端覆盖(`CITY_DATA_BEIJING/GUANGZHOU/SHENZHEN`)，结构同上海版:各自 190 个目的地(全集去掉自己) |
 | `data/china.json` | 省级 GeoJSON，来自阿里 DataV GeoAtlas(含南海诸岛/九段线无名要素) |
 | `vendor/d3.min.js` | D3 v7 |
 

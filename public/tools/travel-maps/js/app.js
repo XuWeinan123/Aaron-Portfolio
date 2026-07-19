@@ -6,8 +6,11 @@
   // 出发城市注册表：新增出发地 → 加一个 data/cities-<slug>.js，在此登记一行即可
   // （下拉选项由此表生成，无需再改 HTML）。emoji 可选，缺省用 📍。
   const DEPARTURES = {
-    shanghai: { data: () => CITY_DATA_SHANGHAI, emoji: "🌆" },
-    hangzhou: { data: () => CITY_DATA_HANGZHOU, emoji: "🌿" },
+    shanghai:  { data: () => CITY_DATA_SHANGHAI, emoji: "🌆" },
+    beijing:   { data: () => CITY_DATA_BEIJING, emoji: "🏮" },
+    guangzhou: { data: () => CITY_DATA_GUANGZHOU, emoji: "🌺" },
+    shenzhen:  { data: () => CITY_DATA_SHENZHEN, emoji: "🚀" },
+    hangzhou:  { data: () => CITY_DATA_HANGZHOU, emoji: "🌿" },
   };
   const DEFAULT_FROM = "shanghai";
 

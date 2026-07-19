@@ -145,11 +145,14 @@
       // 已安装(standalone 打开)就不再提示添加主屏幕
       if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) {
         $('pwa-hint').textContent = '已安装为 App';
+      } else if (/Android/i.test(navigator.userAgent)) {
+        $('pwa-hint').textContent =
+          'Android 请使用最新版 Chrome 安装；若提示版本过旧，请删除旧图标后重新安装';
       }
 
       if ('serviceWorker' in navigator) {
         addEventListener('load', () => {
-          navigator.serviceWorker.register('/tools/punct/sw.js');
+          navigator.serviceWorker.register('/tools/punct/sw.js', { updateViaCache: 'none' });
         });
       }
     </script>

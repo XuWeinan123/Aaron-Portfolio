@@ -20,6 +20,62 @@ if (header && sentinel) {
   ).observe(sentinel);
 }
 
+// ---- 移动端导航:单次点按开关,不依赖 hover / 横向拖动 ----
+const mobileNavToggle = document.getElementById('mobile-nav-toggle');
+const mobileNav = document.getElementById('mobile-nav');
+if (header && mobileNavToggle && mobileNav) {
+  const backgroundContent = [
+    document.querySelector('main'),
+    document.querySelector('.site-footer'),
+    document.querySelector('.skip-link'),
+  ].filter(Boolean);
+
+  const setMobileNav = (open, restoreFocus = true) => {
+    mobileNavToggle.setAttribute('aria-expanded', String(open));
+    mobileNavToggle.setAttribute('aria-label', open ? '关闭导航菜单' : '打开导航菜单');
+    mobileNav.setAttribute('aria-hidden', String(!open));
+    mobileNav.classList.toggle('open', open);
+    mobileNav.toggleAttribute('inert', !open);
+    header.classList.toggle('menu-open', open);
+    document.documentElement.classList.toggle('mobile-nav-open', open);
+    backgroundContent.forEach((element) => element.toggleAttribute('inert', open));
+
+    if (open) {
+      requestAnimationFrame(() => mobileNav.querySelector('a')?.focus());
+    } else if (restoreFocus) {
+      mobileNavToggle.focus();
+    }
+  };
+
+  mobileNav.setAttribute('inert', '');
+  mobileNavToggle.addEventListener('click', () => {
+    setMobileNav(mobileNavToggle.getAttribute('aria-expanded') !== 'true');
+  });
+
+  mobileNav.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => setMobileNav(false, false));
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && mobileNavToggle.getAttribute('aria-expanded') === 'true') {
+      setMobileNav(false);
+    }
+  });
+
+  matchMedia('(max-width: 720px), (hover: none) and (pointer: coarse)').addEventListener(
+    'change',
+    (event) => {
+      if (!event.matches) setMobileNav(false, false);
+    }
+  );
+
+  header.addEventListener('dragstart', (event) => {
+    if (event.target instanceof Element && event.target.closest('a, button')) {
+      event.preventDefault();
+    }
+  });
+}
+
 // ---- 滚动显现(交错延迟通过 --d 控制) ----
 const revealEls = document.querySelectorAll('.reveal');
 if (revealEls.length) {
@@ -39,17 +95,26 @@ if (revealEls.length) {
 
 // ---- 首页 scrollspy:高亮当前所在区块的导航项 ----
 if (header?.dataset.scrollspy) {
-  const links = new Map(
-    [...header.querySelectorAll('nav a[data-nav]')].map((a) => [a.dataset.nav, a])
-  );
+  const links = new Map();
+  header.querySelectorAll('nav a[data-nav]').forEach((link) => {
+    const group = links.get(link.dataset.nav) ?? [];
+    group.push(link);
+    links.set(link.dataset.nav, group);
+  });
+  const mobileCurrent = header.querySelector('[data-mobile-current]');
   const sections = [...document.querySelectorAll('section[data-spy]')];
   if (sections.length) {
     const spy = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           if (!e.isIntersecting) continue;
-          links.forEach((a) => a.classList.remove('active'));
-          links.get(e.target.dataset.spy)?.classList.add('active');
+          links.forEach((group) => group.forEach((link) => link.classList.remove('active')));
+          const activeLinks = links.get(e.target.dataset.spy) ?? [];
+          activeLinks.forEach((link) => link.classList.add('active'));
+          if (mobileCurrent) {
+            mobileCurrent.textContent = activeLinks.find((link) => link.dataset.mobileLabel)
+              ?.dataset.mobileLabel ?? '首页';
+          }
         }
       },
       { rootMargin: '-30% 0px -60% 0px' }
