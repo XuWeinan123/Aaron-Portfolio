@@ -1,5 +1,5 @@
 /* ============================================================
-   地图引擎：投影、手绘省份、等时圈、城市贴纸
+   地图引擎：投影、省份、等时圈、城市贴纸
    等时圈模型：T(点) = min_锚点( 门到门耗时(锚点) + 锚点继续驾车的时间 )
    —— 即"先用该方式到达最近的枢纽城市，再开车前往"，
    能真实呈现高铁/航空走廊带来的时间凹陷。
@@ -31,7 +31,7 @@ const TravelMap = (() => {
   let onCityClick = () => {};
   let width = 0, height = 0;
   let DATA; // 当前出发城市的数据集 { home, cities, anchors }
-  let chinaD = "", contourPath, wobbleDisplacement;
+  let chinaD = "", contourPath;
   let citySelection, cityOutlineSelection, cityFillSelection, cityTimeSelection;
   let zoomItems = [];
   let pendingZoomTransform = null, zoomFrame = 0, lastZoomK = NaN, lastLodBucket = -1;
@@ -171,16 +171,6 @@ const TravelMap = (() => {
   function buildDefs() {
     const defs = svg.append("defs");
 
-    // 手绘抖动滤镜
-    const wobble = defs.append("filter").attr("id", "wobble")
-      .attr("x", "-5%").attr("y", "-5%").attr("width", "110%").attr("height", "110%");
-    wobble.append("feTurbulence")
-      .attr("type", "fractalNoise").attr("baseFrequency", "0.015")
-      .attr("numOctaves", 3).attr("seed", 7).attr("result", "noise");
-    wobbleDisplacement = wobble.append("feDisplacementMap")
-      .attr("in", "SourceGraphic").attr("in2", "noise").attr("scale", 4)
-      .node();
-
     // 全国轮廓裁剪（等时圈不溢出国界/海岸线）。
     // 注意：必须合并为单条 path —— Chromium 对多条复杂子路径的
     // clipPath 会整体判空（已实测），单条合并路径则正常。
@@ -195,7 +185,6 @@ const TravelMap = (() => {
 
   function drawProvinces() {
     rootG.select(".layer-provinces")
-      .attr("filter", "url(#wobble)")
       .selectAll("path")
       .data(provinces)
       .join("path")
@@ -207,7 +196,6 @@ const TravelMap = (() => {
 
     // 南海诸岛 / 九段线：仅描边
     rootG.select(".layer-border")
-      .attr("filter", "url(#wobble)")
       .selectAll("path.dash-line")
       .data(dashLine)
       .join("path")
@@ -611,19 +599,6 @@ const TravelMap = (() => {
     }
   }
 
-  function transitionWobble(scale, duration) {
-    if (!wobbleDisplacement) return;
-    const displacement = d3.select(wobbleDisplacement).interrupt("map-effects");
-    if (!duration) {
-      displacement.attr("scale", scale);
-      return;
-    }
-    displacement.transition("map-effects")
-      .duration(duration)
-      .ease(d3.easeCubicOut)
-      .attr("scale", scale);
-  }
-
   function suspendMapEffects() {
     const token = ++effectsToken;
     clearTimeout(effectsOffTimer);
@@ -634,12 +609,10 @@ const TravelMap = (() => {
       .classed("map-effects-fading", true);
 
     if (reduceMotion()) {
-      transitionWobble(0, 0);
       svg.classed("map-effects-off", true);
       return;
     }
 
-    transitionWobble(0, EFFECTS_OUT_MS);
     effectsOffTimer = setTimeout(() => {
       if (token !== effectsToken || !mapInteracting) return;
       svg.classed("map-effects-off", true);
@@ -651,11 +624,10 @@ const TravelMap = (() => {
     clearTimeout(effectsOffTimer);
     effectsOffTimer = 0;
 
-    // 此时扰动强度和阴影透明度都已经归零，先重新接回效果不会闪变。
+    // 阴影和动态光环已经淡出，先重新接回效果不会闪变。
     svg.classed("map-effects-off", false);
 
     if (reduceMotion()) {
-      transitionWobble(4, 0);
       svg.classed("map-effects-fading", false);
       return;
     }
@@ -664,7 +636,6 @@ const TravelMap = (() => {
       effectsRestoreFrame = 0;
       if (token !== effectsToken || mapInteracting) return;
       svg.classed("map-effects-fading", false);
-      transitionWobble(4, EFFECTS_IN_MS);
     });
   }
 

@@ -164,15 +164,11 @@ body.page-leave { opacity: 0; }
 
 .iso-band {
   pointer-events: none;
-  mix-blend-mode: multiply;
   transition: opacity .09s ease;
 }
 
-/* 手势性能模式：先把视觉强度淡到低点，再停用离屏混合与 SVG 滤镜。 */
+/* 手势性能模式：先把视觉强度淡到低点，再停用城市阴影与动态光环。 */
 #map.map-effects-fading .iso-band { opacity: .42 !important; }
-#map.map-effects-off .iso-band { mix-blend-mode: normal; }
-#map.map-effects-off .layer-provinces,
-#map.map-effects-off .layer-border { filter: none; }
 
 /* 整图根:首屏/切换出发城市到场淡入(animation 保证新插入节点首帧播放) */
 .root { animation: fade-in .45s ease; }
