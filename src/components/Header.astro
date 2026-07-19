@@ -1,0 +1,313 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  scrollspy?: boolean;
+}
+const { scrollspy = false } = Astro.props;
+
+/** 首页 dropdown 内的锚点项（scrollspy 高亮靠 data-nav） */
+const homeMenu = [
+  { href: '/#about', id: 'about', label: '关于' },
+  { href: '/#experience', id: 'experience', label: '经历' },
+  { href: '/#projects', id: 'projects', label: '案例' },
+];
+
+const nav = [
+  { href: '/blog/', id: 'blog', label: '博客' },
+  { href: '/skills/', id: 'skills', label: 'Skill' },
+  { href: '/products/', id: 'products', label: '产品' },
+  { href: '/design/', id: 'design', label: '组件' },
+];
+
+const path = Astro.url.pathname;
+/** 独立页面的导航高亮 */
+const activeId = path.startsWith('/blog')
+  ? 'blog'
+  : path.startsWith('/skills')
+    ? 'skills'
+    : path.startsWith('/products') || path.startsWith('/tools')
+      ? 'products'
+      : path.startsWith('/design')
+        ? 'design'
+        : null;
+---
+
+<header class="site-header" data-scrollspy={scrollspy ? 'true' : undefined}>
+  <div class="inner container">
+    <a class="brand" href="/" aria-label="返回首页">
+      <span class="zh">徐炜楠</span>
+      <span class="divider" aria-hidden="true">/</span>
+      <span class="en mono-sm">AARON XU</span>
+    </a>
+    <nav aria-label="主导航">
+      <div class="nav-drop">
+        <a class="trigger" href="/#about" aria-haspopup="true">
+          首页
+          <Icon name="caret-down" size={11} class="caret" />
+        </a>
+        <div class="menu">
+          {
+            homeMenu.map((item) => (
+              <a href={item.href} data-nav={item.id}>
+                {item.label}
+              </a>
+            ))
+          }
+        </div>
+      </div>
+      {
+        nav.map((item) => (
+          <a
+            href={item.href}
+            data-nav={item.id}
+            class:list={{ active: item.id === activeId }}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+      <a class="contact-link" href="/#contact" data-nav="contact">
+        联系我
+        <Icon name="arrow-down" size={12} class="down" />
+      </a>
+    </nav>
+    <button
+      id="theme-toggle"
+      type="button"
+      aria-label="切换深浅色主题"
+      title="切换深浅色主题"
+    >
+      <span class="icon-sun"><Icon name="sun" size={16} /></span>
+      <span class="icon-moon"><Icon name="moon" size={16} /></span>
+    </button>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 50;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+  }
+
+  .site-header.scrolled {
+    background: var(--header-bg);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border-bottom-color: var(--border);
+  }
+
+  .inner {
+    display: flex;
+    align-items: center;
+    gap: clamp(14px, 3vw, 32px);
+    height: 60px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .brand .divider {
+    color: var(--text-mono);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .brand .en {
+    color: var(--text-mono);
+    letter-spacing: 0.14em;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    gap: clamp(4px, 1.6vw, 10px);
+    margin-left: auto;
+  }
+
+  nav a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    color: var(--text-2);
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    transition: color 0.2s ease, background-color 0.2s ease;
+    white-space: nowrap;
+  }
+
+  nav a:hover {
+    color: var(--text);
+    background: color-mix(in oklch, var(--text) 6%, transparent);
+  }
+
+  nav a:active {
+    color: var(--text);
+    background: color-mix(in oklch, var(--text) 9%, transparent);
+  }
+
+  nav a.active {
+    color: var(--accent-strong);
+    font-weight: 500;
+  }
+
+  /* ---- 首页 dropdown ---- */
+  .nav-drop {
+    position: relative;
+  }
+
+  .nav-drop .trigger :global(.caret) {
+    color: var(--text-3);
+    transition: transform 0.2s var(--ease-out);
+  }
+
+  .nav-drop .menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 128px;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    /* 出现动效：从触发器一侧（上缘）缩放淡入；不从 scale(0) 起步 */
+    transform-origin: top left;
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.18s var(--ease-out), transform 0.18s var(--ease-out);
+  }
+
+  /* hover 前后菜单之间的 6px 空隙用伪元素补上，避免移动途中菜单收起 */
+  .nav-drop .menu::before {
+    content: '';
+    position: absolute;
+    inset: -8px 0 auto;
+    height: 8px;
+  }
+
+  .nav-drop:hover .menu,
+  .nav-drop:focus-within .menu {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .nav-drop:hover .trigger :global(.caret),
+  .nav-drop:focus-within .trigger :global(.caret) {
+    transform: rotate(180deg);
+  }
+
+  .nav-drop .menu a {
+    padding: 8px 12px;
+    font-size: 13.5px;
+  }
+
+  /* 当前滚动区块在菜单内高亮时，触发器同步点亮 */
+  .nav-drop:has(.menu a.active) .trigger {
+    color: var(--accent-strong);
+    font-weight: 500;
+  }
+
+  /* 联系我：向下箭头提示锚点在页尾 */
+  .contact-link :global(.down) {
+    color: var(--text-3);
+    transition: transform 0.25s var(--ease-out), color 0.2s ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .contact-link:hover :global(.down) {
+      transform: translateY(2px);
+      color: var(--accent-strong);
+    }
+  }
+
+  #theme-toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-2);
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.3s var(--ease-out);
+  }
+
+  #theme-toggle:hover {
+    color: var(--text);
+    border-color: var(--text-3);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    #theme-toggle:hover {
+      transform: none;
+    }
+  }
+
+  #theme-toggle:active {
+    transform: scale(0.92);
+  }
+
+  #theme-toggle .icon-sun,
+  #theme-toggle .icon-moon {
+    display: inline-flex;
+  }
+
+  .icon-moon {
+    display: none !important;
+  }
+
+  :global([data-theme='dark']) .icon-moon {
+    display: inline-flex !important;
+  }
+
+  :global([data-theme='dark']) .icon-sun {
+    display: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-drop .menu {
+      transition: opacity 0.18s ease;
+      transform: none;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .brand .en,
+    .brand .divider {
+      display: none;
+    }
+
+    nav {
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    nav a {
+      font-size: 13.5px;
+      padding: 7px 7px;
+    }
+  }
+</style>

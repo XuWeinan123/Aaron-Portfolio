@@ -1,0 +1,16 @@
+---
+/** 案例页区块头：编号 + 中文名 + 英文 mono 标签，可带右侧内容 */
+interface Props {
+  num: string;
+  zh: string;
+  en: string;
+}
+const { num, zh, en } = Astro.props;
+---
+
+<div class="section-head reveal">
+  <span class="num">{num}</span>
+  <span class="zh">{zh}</span>
+  <span class="en">{en}</span>
+  <span class="side"><slot name="side" /></span>
+</div>

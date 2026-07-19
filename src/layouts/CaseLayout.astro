@@ -1,0 +1,219 @@
+---
+import Base from './Base.astro';
+import { cases } from '../data/cases';
+
+/**
+ * 案例页布局：阅读进度条 + 返回链接 + 案例头（编号/分类/标题/摘要/meta 表）。
+ * 传入 slug 时,底部「下一个案例」卡按 cases.ts 的顺序自动生成;
+ * 也可用 slot="next" 完全自定义(优先级更高)。
+ */
+interface Meta {
+  label: string;
+  value: string;
+}
+interface Props {
+  title: string;
+  description?: string;
+  index: string; // 案例编号，如 "01"
+  category: string; // 分类，如 "AI 产品设计"
+  heading: string;
+  summary: string;
+  meta?: Meta[];
+  /** 当前案例的 slug(用于自动生成下一个案例卡) */
+  slug?: string;
+}
+const { title, description, index, category, heading, summary, meta = [], slug } = Astro.props;
+
+const hasCustomNext = Astro.slots.has('next');
+const order = slug ? cases.findIndex((c) => c.slug === slug) : -1;
+const nextCase = !hasCustomNext && order >= 0 ? (cases[order + 1] ?? null) : null;
+---
+
+<Base title={title} description={description}>
+  <div class="progress" aria-hidden="true"><span></span></div>
+
+  <article class="case">
+    <header class="case-hero">
+      <div class="container">
+        <a class="back mono-sm" href="/#projects"><span class="arr">←</span> 返回精选案例</a>
+        <div class="kicker reveal">
+          <span class="mono-accent index">{index}</span>
+          <span class="badge">{category}</span>
+        </div>
+        <h1 class="display reveal" style="--d:.06s">{heading}</h1>
+        <p class="lead reveal" style="--d:.12s" set:html={summary} />
+        {
+          meta.length > 0 && (
+            <dl class="meta reveal" style="--d:.18s">
+              {meta.map((m) => (
+                <div class="meta-item">
+                  <dt class="mono-label">{m.label}</dt>
+                  <dd>{m.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )
+        }
+      </div>
+    </header>
+
+    <slot />
+
+    <div class="container">
+      <nav class="case-next reveal" aria-label="继续浏览">
+        {hasCustomNext && <slot name="next" />}
+        {
+          nextCase && (
+            <a class="card next-card" href={`/work/${nextCase.slug}/`}>
+              <div>
+                <div class="hint">{nextCase.nextHint}</div>
+                <div class="name">{nextCase.nextLine}</div>
+              </div>
+              <span class="go" aria-hidden="true">
+                →
+              </span>
+            </a>
+          )
+        }
+      </nav>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .case-hero {
+    padding: clamp(112px, 15vw, 176px) 0 clamp(40px, 6vw, 64px);
+  }
+
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+    margin-bottom: clamp(28px, 4vw, 44px);
+    transition: color 0.2s ease;
+  }
+
+  .back .arr {
+    transition: transform 0.25s var(--ease-out);
+  }
+
+  .back:hover {
+    color: var(--text);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .back:hover .arr {
+      transform: translateX(-3px);
+    }
+  }
+
+  .back:active .arr {
+    transform: translateX(-5px);
+  }
+
+  .kicker {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+
+  .kicker .index {
+    font-size: 15px;
+    letter-spacing: 0.1em;
+  }
+
+  h1 {
+    max-width: 20ch;
+    margin-bottom: 26px;
+  }
+
+  .lead {
+    max-width: 62ch;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(28px, 5vw, 64px);
+    margin: clamp(36px, 5vw, 52px) 0 0;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+
+  .meta-item dt {
+    margin-bottom: 8px;
+  }
+
+  .meta-item dd {
+    margin: 0;
+    font-size: 15px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .case-next {
+    display: grid;
+    gap: 16px;
+    margin-top: clamp(64px, 9vw, 104px);
+  }
+</style>
+
+<style is:global>
+  /* 案例页通用区块节奏 */
+  .case-section {
+    padding: clamp(44px, 6.5vw, 78px) 0;
+  }
+
+  .case-section .h-section {
+    margin-bottom: 20px;
+    max-width: 24ch;
+  }
+
+  .case-section .section-lead {
+    max-width: 66ch;
+    margin-bottom: clamp(30px, 4.5vw, 46px);
+  }
+
+  /* 下一个案例卡片 */
+  .next-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 30px 34px;
+  }
+
+  .next-card .hint {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-mono);
+    margin-bottom: 10px;
+  }
+
+  .next-card .name {
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .next-card .go {
+    font-size: 22px;
+    color: var(--text-3);
+    transition: transform 0.25s var(--ease-out), color 0.2s ease;
+  }
+
+  .next-card:hover .go {
+    color: var(--accent-strong);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .next-card:hover .go {
+      transform: translateX(5px);
+    }
+  }
+</style>

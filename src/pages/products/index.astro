@@ -1,0 +1,426 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import { products, tools } from '../../data/products';
+---
+
+<Base
+  title="产品 - 徐炜楠 Aaron Xu"
+  description="徐炜楠独立开发的产品与小工具：漫画阅读 App、Figma 插件套件、加密便签，以及一组解决日常小麻烦的工具。"
+>
+  <div class="products-page container">
+    <header class="page-head">
+      <div class="mono-label reveal">Products · Built & Shipped</div>
+      <h1 class="display reveal" style="--d:.05s">自研<span class="accent-text">产品</span>.</h1>
+      <p class="lead reveal" style="--d:.1s">
+        工作之外，我也独立开发产品 —— 从上架 App Store 的漫画阅读器，
+        到开源的设计迁移插件，再到解决日常小麻烦的小工具。
+      </p>
+    </header>
+
+    <!-- ============ 01 产品 ============ -->
+    <section class="block" aria-labelledby="sec-products">
+      <button
+        class="section-head section-toggle reveal"
+        type="button"
+        aria-expanded="true"
+        aria-controls="panel-products"
+      >
+        <span class="num">01</span>
+        <span class="zh" id="sec-products">产品</span>
+        <span class="en">Products</span>
+        <Icon name="caret-down" size={15} class="toggle-caret" />
+      </button>
+      <div class="collapse" id="panel-products">
+      <div class="collapse-inner">
+      <ol class="product-list">
+        {
+          products.map((p, i) => (
+            <li class="reveal" style={`--d:${0.06 * i}s`}>
+              <article class="product-card card">
+                <img
+                  class="product-icon"
+                  src={p.image}
+                  alt={p.imageAlt}
+                  width="96"
+                  height="96"
+                  loading="lazy"
+                />
+                <div class="product-body">
+                  <div class="product-title">
+                    <h2>{p.name}</h2>
+                    <span class="mono-sm en">{p.en}</span>
+                  </div>
+                  <p class="tagline">{p.tagline}</p>
+                  <p class="desc">{p.description}</p>
+                  <div class="product-meta">
+                    {p.tags.map((t) => (
+                      <span class="chip mono-sm">{t}</span>
+                    ))}
+                    <div class="links">
+                      {p.links.map((l) => (
+                        <a
+                          class="product-link mono-sm"
+                          href={l.href}
+                          target={l.href.startsWith('/') ? undefined : '_blank'}
+                          rel={l.href.startsWith('/') ? undefined : 'noopener'}
+                        >
+                          <Icon name={l.icon} size={14} />
+                          {l.label}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </li>
+          ))
+        }
+      </ol>
+      </div>
+      </div>
+    </section>
+
+    <!-- ============ 02 小工具 ============ -->
+    <section class="block" aria-labelledby="sec-tools">
+      <button
+        class="section-head section-toggle reveal"
+        type="button"
+        aria-expanded="true"
+        aria-controls="panel-tools"
+      >
+        <span class="num">02</span>
+        <span class="zh" id="sec-tools">小工具</span>
+        <span class="en">Mini Tools</span>
+        <Icon name="caret-down" size={15} class="toggle-caret" />
+      </button>
+      <div class="collapse" id="panel-tools">
+      <div class="collapse-inner">
+      <ol class="tool-list">
+        {
+          tools.map((t, i) => (
+            <li class="reveal" style={`--d:${0.06 * i}s`}>
+              <a
+                class="tool-card"
+                href={t.href ?? `/tools/${t.slug}/`}
+                target={t.newTab ? '_blank' : undefined}
+                rel={t.newTab ? 'noopener' : undefined}
+              >
+                <div class="card-top">
+                  <span class="mono-sm num">{String(i + 1).padStart(2, '0')}</span>
+                  <span class="mono-sm en">{t.en}</span>
+                  {t.pwa && <span class="chip pwa mono-sm">PWA</span>}
+                </div>
+                <h3>
+                  {t.name}
+                  <span class="arr" aria-hidden="true">
+                    →
+                  </span>
+                </h3>
+                <p>{t.description}</p>
+              </a>
+            </li>
+          ))
+        }
+      </ol>
+      </div>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<script>
+  // Section 折叠:grid-template-rows 0fr↔1fr 的可中断 transition,caret 旋转指示
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('.section-toggle')) {
+    btn.addEventListener('click', () => {
+      const block = btn.closest('.block');
+      if (!block) return;
+      const collapsed = block.classList.toggle('collapsed');
+      btn.setAttribute('aria-expanded', String(!collapsed));
+    });
+  }
+</script>
+
+<style>
+  /* 页头节奏与博客/组件页保持一致 */
+  .products-page {
+    padding-top: clamp(112px, 15vw, 168px);
+  }
+
+  .page-head {
+    margin-bottom: clamp(40px, 6vw, 64px);
+  }
+
+  .page-head .mono-label {
+    display: block;
+    margin-bottom: 22px;
+  }
+
+  .page-head h1 {
+    margin-bottom: 22px;
+  }
+
+  .page-head .lead {
+    max-width: 58ch;
+  }
+
+  .block + .block {
+    margin-top: clamp(56px, 8vw, 88px);
+  }
+
+  /* ---- 可折叠 Section 头(button 化,复用 .section-head 视觉) ---- */
+  .section-toggle {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    /* 头本身不再留下方间距,间距挪进可折叠区,折叠时一并收起 */
+    margin-bottom: 0;
+    transition: border-color 0.2s ease;
+  }
+
+  /* caret 是 <Fragment set:html> 注入的原始 svg,拿不到 Astro 作用域属性,故用 :global */
+  .section-toggle :global(.toggle-caret) {
+    margin-left: auto;
+    align-self: center;
+    color: var(--text-3);
+    transition: transform 0.28s var(--ease-out), color 0.2s ease;
+  }
+
+  .section-toggle:hover :global(.toggle-caret) {
+    color: var(--accent-strong);
+  }
+
+  /* 折叠态:caret 转到向上(默认向下 = 展开) */
+  .block.collapsed :global(.toggle-caret) {
+    transform: rotate(-180deg);
+  }
+
+  .collapse {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.34s var(--ease-out), opacity 0.26s ease;
+  }
+
+  /* 裁剪层:不带内边距,才能被 0fr 轨道压到 0 */
+  .collapse-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* 头与列表间距活在裁剪层内部,折叠时一并收起 */
+  .collapse-inner > :global(ol) {
+    padding-top: clamp(28px, 4vw, 44px);
+  }
+
+  .block.collapsed .collapse {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .collapse {
+      transition: opacity 0.2s ease;
+    }
+  }
+
+  /* ---- 01 产品 ---- */
+  .product-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .product-card {
+    display: flex;
+    gap: clamp(20px, 3.5vw, 36px);
+    padding: clamp(22px, 3.5vw, 34px);
+    border-radius: var(--radius-lg);
+  }
+
+  .product-icon {
+    flex-shrink: 0;
+    width: clamp(72px, 10vw, 96px);
+    height: clamp(72px, 10vw, 96px);
+    border-radius: 22%;
+    object-fit: cover;
+  }
+
+  .product-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .product-title {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .product-title h2 {
+    font-size: clamp(19px, 2.4vw, 22px);
+    letter-spacing: -0.01em;
+  }
+
+  .product-title .en {
+    color: var(--text-mono);
+    letter-spacing: 0.12em;
+  }
+
+  .tagline {
+    color: var(--accent-strong);
+    font-size: 14.5px;
+    font-weight: 500;
+  }
+
+  .desc {
+    color: var(--text-2);
+    font-size: 14.5px;
+    line-height: 1.75;
+  }
+
+  .product-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .links {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .product-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    color: var(--text-2);
+    transition: color 0.2s ease, border-color 0.2s ease, transform 0.16s var(--ease-out);
+  }
+
+  .product-link:hover {
+    color: var(--accent-strong);
+    border-color: var(--accent-border);
+  }
+
+  .product-link:active {
+    transform: scale(0.96);
+  }
+
+  /* ---- 02 小工具 ---- */
+  .tool-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  .tool-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: clamp(20px, 3vw, 28px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: inherit;
+    transition: border-color 0.2s ease, transform 0.3s var(--ease-out);
+  }
+
+  .tool-card:hover {
+    border-color: var(--accent-border);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .tool-card:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .tool-card:active {
+    transform: translateY(0) scale(0.995);
+  }
+
+  /* 固定高度:有无 PWA 徽标的两张卡片,标题/正文都能对齐 */
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 22px;
+    color: var(--text-mono);
+  }
+
+  .card-top .en {
+    letter-spacing: 0.12em;
+  }
+
+  /* PWA 徽标:紧凑填充式小胶囊,不撑高行,与 mono 文字基线齐平 */
+  .chip.pwa {
+    margin-left: auto;
+    gap: 0;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--accent-strong);
+    background: color-mix(in oklch, var(--accent) 12%, transparent);
+    border-color: transparent;
+  }
+
+  .tool-card h3 {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  .tool-card .arr {
+    color: var(--accent);
+    transition: transform 0.3s var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .tool-card:hover .arr {
+      transform: translateX(4px);
+    }
+  }
+
+  .tool-card p {
+    color: var(--text-2);
+    font-size: 14.5px;
+    line-height: 1.7;
+  }
+
+  @media (max-width: 560px) {
+    .product-card {
+      flex-direction: column;
+    }
+
+    .links {
+      margin-left: 0;
+    }
+  }
+</style>

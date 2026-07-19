@@ -1,0 +1,414 @@
+/* ============================================================
+   出发吧打工人 —— 旅行手账风格
+   暖纸底色 + 和纸胶带 + 贴纸标记 + 水彩等时圈
+   ============================================================ */
+
+:root {
+  --paper: #f7f1e3;
+  --paper-deep: #efe6d0;
+  --ink: #4a3f35;
+  --ink-soft: #7a6a58;
+  --accent: #e8606b;
+  --accent-2: #3d8f83;
+  --accent-3: #e9a13b;
+  --sky: #bfd9d4;
+  --font-cute: "ZCOOL KuaiLe", "PingFang SC", sans-serif;
+  --font-body: "Noto Serif SC", "Songti SC", serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--paper);
+  transition: opacity .2s ease;
+}
+/* 切换出发城市:离场淡出(app.js 加类,200ms 后跳转) */
+body.page-leave { opacity: 0; }
+
+/* 纸张纹理：噪点 + 微弱网格 */
+#paper-bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.30 0 0 0 0 0.25 0 0 0 0 0.18 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(122,106,88,.06) 31px 32px);
+}
+
+/* ---------------- 顶栏 ---------------- */
+#topbar {
+  position: relative; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  padding: 14px 26px 10px;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+
+.brand-stamp {
+  display: inline-block; flex: none;
+  width: 44px; height: 44px;
+  transform: rotate(-7deg);
+}
+.brand-stamp img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+.brand h1 {
+  font-family: var(--font-cute); font-size: 30px; letter-spacing: 2px;
+  line-height: 1;
+  color: var(--ink);
+  text-shadow: 2px 2px 0 #fff, 3px 3px 0 rgba(232,96,107,.35);
+}
+
+
+/* 出发城市切换：手账风 dropdown（选项由 JS 注册表生成，便于后续扩展） */
+#city-switch { position: relative; }
+
+.city-dd-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-cute); font-size: 15px; color: var(--ink);
+  background: #fffdf6; border: 1.5px dashed var(--accent-2);
+  border-radius: 999px; padding: 6px 14px; cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(74,63,53,.12);
+  transform: rotate(-1.2deg);
+  transition: transform .12s, background .12s, box-shadow .12s;
+}
+.city-dd-btn:hover { transform: translateY(-2px) rotate(0deg); }
+.city-dd-btn:active { transform: translateY(0) rotate(0deg); }
+.city-dd-btn[aria-expanded="true"] {
+  background: var(--accent-2); color: #fff;
+  border-style: solid; border-color: var(--accent-2);
+  box-shadow: 2px 2px 0 rgba(35,90,80,.35); transform: rotate(0deg);
+}
+.city-dd-btn .dd-pin { font-size: 13px; }
+.city-dd-btn .dd-caret { font-size: 11px; transition: transform .15s; }
+.city-dd-btn[aria-expanded="true"] .dd-caret { transform: rotate(180deg); }
+
+.city-dd-menu {
+  position: absolute; top: calc(100% + 8px); left: 50%;
+  z-index: 60; min-width: 148px; margin: 0; padding: 6px; list-style: none;
+  background: #fffdf6; border: 1.5px solid #e2d3b4; border-radius: 14px;
+  box-shadow: 3px 5px 0 rgba(74,63,53,.16), 0 8px 22px rgba(74,63,53,.14);
+  /* 从按钮方向长出:缩放原点在上缘小箭头处 */
+  transform-origin: 50% -8px;
+  opacity: 0; transform: translateX(-50%) translateY(-4px) scale(.95);
+  visibility: hidden; pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease, visibility .16s;
+}
+.city-dd-menu.open {
+  opacity: 1; transform: translateX(-50%);
+  visibility: visible; pointer-events: auto;
+}
+.city-dd-menu::before {
+  content: ""; position: absolute; top: -7px; left: 50%; margin-left: -7px;
+  width: 12px; height: 12px; background: #fffdf6;
+  border-left: 1.5px solid #e2d3b4; border-top: 1.5px solid #e2d3b4;
+  transform: rotate(45deg);
+}
+.city-dd-opt {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-cute); font-size: 15px; color: var(--ink-soft);
+  padding: 8px 12px; border-radius: 9px; cursor: pointer;
+  white-space: nowrap; transition: background .1s, color .1s;
+}
+.city-dd-opt:hover { background: #f4ead2; color: var(--ink); }
+.city-dd-opt[aria-selected="true"] { background: var(--accent-2); color: #fff; }
+.city-dd-opt[aria-selected="true"] .opt-check { opacity: 1; }
+.city-dd-opt .opt-emoji { font-size: 14px; }
+.city-dd-opt .opt-check { margin-left: auto; font-size: 12px; opacity: 0; }
+
+/* 方式切换：票根按钮 */
+#mode-switch { display: flex; gap: 8px; }
+
+.mode-btn {
+  font-family: var(--font-cute); font-size: 15px; color: var(--ink-soft);
+  background: #fffdf6; border: 1.5px solid #d9c9a8;
+  border-radius: 10px; padding: 7px 14px; cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(74,63,53,.15);
+  transition: transform .12s, background .12s;
+  position: relative;
+}
+.mode-btn:nth-child(odd) { transform: rotate(-1deg); }
+.mode-btn:nth-child(even) { transform: rotate(1deg); }
+.mode-btn:hover { transform: translateY(-2px) rotate(0deg); }
+.mode-btn:active { transform: translateY(0) rotate(0deg); }
+.mode-btn.active {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  box-shadow: 2px 2px 0 rgba(160,40,50,.4);
+}
+.mb-icon { margin-right: 4px; }
+
+/* ---------------- 舞台 ---------------- */
+#stage { position: relative; z-index: 10; height: calc(100% - 110px); }
+
+#map-wrap { position: absolute; inset: 0; }
+
+#map { width: 100%; height: 100%; display: block; cursor: grab; }
+#map:active { cursor: grabbing; }
+
+/* 省份与等时圈样式由 JS 内联控制，这里只放公共部分 */
+.province { transition: fill .2s; }
+
+.iso-band { pointer-events: none; mix-blend-mode: multiply; }
+
+/* 模式切换:旧层克隆(.layer-ghost)压在新层上淡出 = 交叉溶解 */
+.layer-ghost { transition: opacity .3s ease; pointer-events: none; }
+
+/* 整图根:首屏/切换出发城市到场淡入(animation 保证新插入节点首帧播放) */
+.root { animation: fade-in .45s ease; }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* 城市贴纸
+   transform 分三层：.sticker-zoom(缩放反比例,跟手不过渡)
+   > .sticker-lod(LOD 折叠/展开,带过渡) > .sticker-bg(hover,恒定 1.18 倍) */
+.city-sticker { cursor: pointer; }
+.city-sticker .sticker-lod {
+  transition: transform .25s ease;
+  transform-origin: center; transform-box: fill-box;
+}
+.city-sticker .sticker-bg {
+  transition: transform .15s;
+  transform-origin: center; transform-box: fill-box;
+  filter: drop-shadow(1.5px 2.5px 1px rgba(74,63,53,.28));
+}
+.city-sticker:hover .sticker-bg { transform: scale(1.18); }
+.city-label {
+  font-family: var(--font-cute); fill: var(--ink);
+  paint-order: stroke; stroke: #fff8ec; stroke-width: 3px;
+  pointer-events: none;
+  transition: opacity .25s;
+}
+.city-time-tag {
+  font-family: var(--font-body); fill: #9c4a52;
+  paint-order: stroke; stroke: #fff8ec; stroke-width: 2.5px;
+  pointer-events: none;
+  transition: opacity .25s;
+}
+
+/* 家：出发城市 */
+/* transform-box: fill-box 必不可少：SVG 元素的缩放原点默认是整个
+   viewBox 中心，少了它光环会从地图上飞过去而不是原地扩散 */
+.home-pulse {
+  animation: pulse 2.4s infinite ease-out;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes pulse {
+  0% { opacity: .8; transform: scale(.6); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+
+/* ---------------- 图例卡片 ---------------- */
+.paper-card {
+  background: #fffdf6;
+  border: 1px solid #e3d5b8;
+  border-radius: 6px;
+  box-shadow: 3px 4px 0 rgba(74,63,53,.12);
+  position: relative;
+}
+
+#legend {
+  position: absolute; left: 22px; bottom: 18px; width: 250px;
+  padding: 18px 16px 12px; transform: rotate(-1.2deg);
+}
+
+#legend h3 { font-family: var(--font-cute); font-size: 17px; margin-bottom: 4px; }
+.legend-note { font-size: 12px; color: var(--ink-soft); line-height: 1.5; margin-bottom: 8px; }
+#legend-bands { list-style: none; }
+#legend-bands li {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-body); font-size: 14px; line-height: 1.7;
+}
+.band-chip {
+  width: 26px; height: 14px; border-radius: 4px;
+  border: 1px solid rgba(74,63,53,.25); flex: none;
+}
+.legend-foot {
+  margin-top: 8px; padding-top: 6px; border-top: 1px dashed #d9c9a8;
+  font-size: 10.5px; color: #a3937e; line-height: 1.5;
+}
+
+/* 和纸胶带 */
+.washi {
+  position: absolute; width: 92px; height: 26px;
+  top: -12px; left: 50%; transform: translateX(-50%) rotate(-3deg);
+  opacity: .85;
+}
+.washi-pink { background: repeating-linear-gradient(45deg, #f4b8c1 0 8px, #f9d6db 8px 16px); }
+.washi-yellow { background: repeating-linear-gradient(-45deg, #f2cf8d 0 8px, #f9e7c0 8px 16px); }
+.washi-green { background: repeating-linear-gradient(45deg, #b5d6c4 0 8px, #d8ecdf 8px 16px); }
+
+/* ---------------- 悬浮提示 ---------------- */
+#hover-tip {
+  position: absolute; z-index: 30; pointer-events: none;
+  background: #fffdf6; border: 1.5px solid #d9c9a8; border-radius: 8px;
+  padding: 8px 12px; font-family: var(--font-cute); font-size: 14px;
+  box-shadow: 2px 3px 0 rgba(74,63,53,.18);
+  max-width: 230px;
+  /* 高频出现,只做近不可感知的快淡入;位置跟手不过渡 */
+  transition: opacity .12s ease;
+}
+#hover-tip.hidden { display: block; opacity: 0; }
+#hover-tip .tip-time { font-family: var(--font-body); color: var(--accent); font-size: 16px; }
+
+/* ---------------- 城市手账面板 ---------------- */
+#panel {
+  position: absolute; top: 6px; right: 14px; bottom: 12px;
+  width: min(430px, 92vw); z-index: 40;
+  transition: transform .35s cubic-bezier(.2,.9,.3,1.1), opacity .3s;
+}
+#panel.hidden { transform: translateX(110%); opacity: 0; pointer-events: none; }
+
+.panel-paper {
+  height: 100%; overflow-y: auto; overflow-x: hidden;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 27px, rgba(122,106,88,.09) 27px 28px),
+    #fffdf6;
+  border: 1px solid #e3d5b8; border-radius: 8px;
+  box-shadow: -4px 5px 0 rgba(74,63,53,.14);
+  padding: 26px 22px 22px;
+  scrollbar-width: thin; scrollbar-color: #d9c9a8 transparent;
+}
+
+.panel-washi { top: -2px; }
+
+#panel-close {
+  position: absolute; top: 10px; right: 12px; z-index: 5;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid #d9c9a8; background: #fff8ec; color: var(--ink-soft);
+  font-size: 14px; cursor: pointer;
+}
+#panel-close:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+#panel-close:active { transform: scale(.92); }
+#panel-close { transition: background .12s, color .12s, transform .12s; }
+
+/* —— 手账内容 —— */
+.pj-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.pj-emoji { font-size: 44px; filter: drop-shadow(2px 2px 0 rgba(74,63,53,.15)); }
+.pj-head h2 { font-family: var(--font-cute); font-size: 30px; letter-spacing: 3px; }
+.pj-head .pj-sub { font-family: var(--font-body); color: var(--ink-soft); font-size: 16px; }
+
+.pj-tagline {
+  font-family: var(--font-body); font-size: 18px; color: var(--accent-2);
+  margin: 2px 0 14px; line-height: 1.6;
+}
+
+.pj-section-title {
+  font-family: var(--font-cute); font-size: 17px; margin: 18px 0 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.pj-section-title::after {
+  content: ""; flex: 1; border-bottom: 2px dotted #d9c9a8;
+}
+
+/* 交通票根对比 */
+.ticket {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1.5px solid #e3d5b8; border-radius: 8px;
+  padding: 9px 12px; margin-bottom: 8px; position: relative;
+}
+.ticket::before, .ticket::after {
+  content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%;
+  background: #fffdf6; border: 1.5px solid #e3d5b8; top: 50%;
+}
+.ticket::before { left: -8px; transform: translateY(-50%); border-left-color: transparent; }
+.ticket::after { right: -8px; transform: translateY(-50%); border-right-color: transparent; }
+
+.ticket.recommended { border-color: var(--accent); border-width: 2px; background: #fff4f0; }
+.ticket .tk-icon { font-size: 24px; flex: none; }
+.ticket .tk-main { flex: 1; min-width: 0; }
+.ticket .tk-name { font-family: var(--font-cute); font-size: 15px; }
+.ticket .tk-detail { font-size: 11.5px; color: var(--ink-soft); line-height: 1.5; }
+.ticket .tk-time { font-family: var(--font-body); font-size: 21px; color: var(--accent); flex: none; }
+.ticket .tk-price { font-size: 11px; color: var(--ink-soft); text-align: right; }
+.tk-badge {
+  position: absolute; top: -10px; right: 14px;
+  font-family: var(--font-cute); font-size: 11px; color: #fff;
+  background: var(--accent); border-radius: 20px; padding: 2px 10px;
+  transform: rotate(2deg);
+}
+.ticket.unavailable { opacity: .55; }
+
+.pj-reco {
+  font-size: 13px; line-height: 1.8; color: var(--ink);
+  background: #f4f9f3; border-left: 3px solid var(--accent-2);
+  border-radius: 0 6px 6px 0; padding: 8px 12px; margin-top: 6px;
+}
+
+/* 景点贴纸墙 */
+.spot-wall { display: flex; flex-wrap: wrap; gap: 8px; }
+.spot-sticker {
+  display: flex; align-items: center; gap: 6px;
+  background: #fff; border: 1.5px solid #e3d5b8; border-radius: 20px;
+  padding: 5px 12px 5px 7px; font-family: var(--font-cute); font-size: 13.5px;
+  box-shadow: 1.5px 2px 0 rgba(74,63,53,.12);
+}
+.spot-sticker:nth-child(3n) { transform: rotate(-1.5deg); }
+.spot-sticker:nth-child(3n+1) { transform: rotate(1.2deg); }
+.spot-sticker .sp-emoji { font-size: 18px; }
+
+/* 行程攻略 */
+.day-block { margin-bottom: 12px; }
+.day-tag {
+  display: inline-block; font-family: var(--font-cute); font-size: 13px;
+  color: #fff; background: var(--accent-2); border-radius: 6px;
+  padding: 2px 10px; margin-bottom: 5px; transform: rotate(-1deg);
+}
+.day-route { font-size: 13px; line-height: 2; }
+.day-route .rt-arrow { color: var(--accent); font-weight: bold; margin: 0 2px; }
+.day-note { font-family: var(--font-body); font-size: 15px; color: var(--ink-soft); line-height: 1.6; margin-top: 2px; }
+
+.pj-tips {
+  margin-top: 16px; background: #fdf6e4; border: 1px dashed var(--accent-3);
+  border-radius: 8px; padding: 10px 12px; font-size: 12.5px; line-height: 1.8;
+}
+.pj-tips b { font-family: var(--font-cute); color: #b97a14; }
+
+/* ---------------- 底部 ---------------- */
+#credit {
+  position: relative; z-index: 20;
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 16px; flex-wrap: wrap;
+  padding: 8px 26px; font-size: 11px; color: #a3937e;
+  font-family: var(--font-body);
+}
+.credit-thanks { text-align: right; margin-left: auto; }
+.credit-thanks a {
+  color: var(--accent-2); text-decoration: none;
+  border-bottom: 1px dashed var(--accent-2);
+}
+.credit-thanks a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ---------------- 缩放控件（Phosphor Icons） ---------------- */
+#zoom-ctrl {
+  position: absolute; right: 16px; bottom: 14px; z-index: 30;
+  display: flex; flex-direction: column; gap: 8px;
+}
+/* 城市详情 panel 打开时让位隐藏 */
+#panel:not(.hidden) ~ #zoom-ctrl { display: none; }
+
+.zoom-btn {
+  width: 40px; height: 40px; display: grid; place-items: center;
+  background: #fffdf6; color: var(--ink-soft);
+  border: 1.5px solid #d9c9a8; border-radius: 12px; cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(74,63,53,.15);
+  transition: transform .12s, background .12s, color .12s;
+}
+.zoom-btn:hover { transform: translateY(-2px); color: var(--ink); background: #fff; }
+.zoom-btn:active { transform: translateY(0); }
+.zoom-btn svg { width: 20px; height: 20px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .zoom-btn, #panel, .city-sticker .sticker-lod, .city-sticker .sticker-bg,
+  .city-label, .city-time-tag, .city-dd-menu, .layer-ghost, body,
+  #hover-tip { transition: none; }
+  .home-pulse { animation: none; opacity: 0; }
+  .root { animation: none; }
+}
+
+/* 手机适配 */
+@media (max-width: 760px) {
+  #legend { width: 200px; left: 10px; bottom: 10px; padding: 14px 12px 10px; }
+  #panel { right: 6px; left: 6px; width: auto; }
+}

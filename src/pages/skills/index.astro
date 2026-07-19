@@ -1,0 +1,190 @@
+---
+import Base from '../../layouts/Base.astro';
+import { skills } from '../../data/skills';
+---
+
+<Base
+  title="Skill - 徐炜楠 Aaron Xu"
+  description="徐炜楠自己编写的 Agent Skill:让 AI 编程助手长出趁手的专业能力。"
+>
+  <div class="skills-page container">
+    <header class="page-head">
+      <div class="mono-label reveal">Skills · Hand-crafted</div>
+      <h1 class="display reveal" style="--d:.05s">自写<span class="accent-text"> Skill</span>.</h1>
+      <p class="lead reveal" style="--d:.1s">
+        为 Claude Code 等 AI 编程助手编写的技能包 ——
+        把一件事的最佳做法沉淀成可复用的指令，让 Agent 一次学会、次次做好。
+      </p>
+    </header>
+
+    {
+      skills.length > 0 ? (
+        <ol class="skill-list">
+          {skills.map((s, i) => (
+            <li class="reveal" style={`--d:${0.05 * i}s`}>
+              <article class="skill-card">
+                <div class="card-top">
+                  <span class="mono-sm num">{String(i + 1).padStart(2, '0')}</span>
+                  {s.status === 'wip' && <span class="chip wip mono-sm">打磨中</span>}
+                  {s.date && <span class="mono-sm date">{s.date}</span>}
+                </div>
+                <h2>
+                  {s.href ? (
+                    <a href={s.href} target="_blank" rel="noopener">
+                      {s.name} ↗
+                    </a>
+                  ) : (
+                    s.name
+                  )}
+                </h2>
+                <p>{s.description}</p>
+                {s.tags && s.tags.length > 0 && (
+                  <div class="tags">
+                    {s.tags.map((t) => (
+                      <span class="chip mono-sm">{t}</span>
+                    ))}
+                  </div>
+                )}
+              </article>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <div class="empty-state reveal" style="--d:.15s">
+          <div class="mono-label">COMING SOON</div>
+          <p class="empty-title">第一批 Skill 正在打磨中。</p>
+          <p class="empty-desc">
+            日常工作里被反复验证过的做法，才值得固化成 Skill。
+            近期会陆续把设计工程与 AI 工作流方向的几个技能包整理上架 ——
+            在此之前，可以先去<a href="/blog/">博客</a>看看它们的由来。
+          </p>
+        </div>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  /* 页头节奏与博客/组件页保持一致 */
+  .skills-page {
+    padding-top: clamp(112px, 15vw, 168px);
+  }
+
+  .page-head {
+    margin-bottom: clamp(40px, 6vw, 64px);
+  }
+
+  .page-head .mono-label {
+    display: block;
+    margin-bottom: 22px;
+  }
+
+  .page-head h1 {
+    margin-bottom: 22px;
+  }
+
+  .page-head .lead {
+    max-width: 58ch;
+  }
+
+  .skill-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .skill-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: clamp(20px, 3vw, 28px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    transition: border-color 0.2s ease, transform 0.3s var(--ease-out);
+  }
+
+  .skill-card:hover {
+    border-color: var(--accent-border);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .skill-card:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-mono);
+  }
+
+  .card-top .date {
+    margin-left: auto;
+  }
+
+  .skill-card h2 {
+    font-size: 19px;
+    letter-spacing: -0.01em;
+  }
+
+  .skill-card h2 a {
+    color: inherit;
+  }
+
+  .skill-card h2 a:hover {
+    color: var(--accent-strong);
+  }
+
+  .skill-card p {
+    color: var(--text-2);
+    font-size: 14.5px;
+    line-height: 1.7;
+  }
+
+  .tags {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 8px;
+  }
+
+  .chip.wip {
+    color: var(--accent-strong);
+    border-color: var(--accent-border);
+  }
+
+  .empty-state {
+    max-width: 620px;
+    padding: clamp(32px, 5vw, 48px);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+
+  .empty-title {
+    margin-top: 14px;
+    font-size: clamp(19px, 2.4vw, 22px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .empty-desc {
+    margin-top: 10px;
+    color: var(--text-2);
+    line-height: 1.8;
+  }
+
+  .empty-desc a {
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>
