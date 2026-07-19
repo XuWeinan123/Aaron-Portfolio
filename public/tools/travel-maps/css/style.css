@@ -150,7 +150,17 @@ body.page-leave { opacity: 0; }
 /* 省份与等时圈样式由 JS 内联控制，这里只放公共部分 */
 .province { transition: fill .2s; }
 
-.iso-band { pointer-events: none; mix-blend-mode: multiply; }
+.iso-band {
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  transition: opacity .09s ease;
+}
+
+/* 手势性能模式：先把视觉强度淡到低点，再停用离屏混合与 SVG 滤镜。 */
+#map.map-effects-fading .iso-band { opacity: .42 !important; }
+#map.map-effects-off .iso-band { mix-blend-mode: normal; }
+#map.map-effects-off .layer-provinces,
+#map.map-effects-off .layer-border { filter: none; }
 
 /* 整图根:首屏/切换出发城市到场淡入(animation 保证新插入节点首帧播放) */
 .root { animation: fade-in .45s ease; }
@@ -165,7 +175,7 @@ body.page-leave { opacity: 0; }
   transform-origin: center; transform-box: fill-box;
 }
 .city-sticker .sticker-bg {
-  transition: transform .15s;
+  transition: transform .15s, filter .09s ease;
   transform-origin: center; transform-box: fill-box;
   filter: drop-shadow(1.5px 2.5px 1px rgba(74,63,53,.28));
 }
@@ -185,6 +195,31 @@ body.page-leave { opacity: 0; }
   transition: opacity .25s;
 }
 
+/* 拖动/缩放时隐藏文字；结束后先校准 transform，再淡入到各自 LOD 状态。 */
+#map.map-interacting .city-label,
+#map.map-interacting .city-time-tag {
+  opacity: 0 !important;
+  transition: opacity .08s ease-out;
+}
+#map.map-settling .sticker-zoom {
+  transition: transform .18s cubic-bezier(.2,.8,.2,1);
+}
+
+/* 阴影先淡出为透明，再由 map-effects-off 彻底移除渲染成本。 */
+.home-core {
+  filter: drop-shadow(1.5px 2.5px 1px rgba(74,63,53,.3));
+  transition: filter .09s ease;
+}
+#map.map-effects-fading .city-sticker .sticker-bg,
+#map.map-effects-fading .home-core {
+  filter: drop-shadow(0 0 0 rgba(74,63,53,0));
+}
+#map.map-effects-off .city-sticker .sticker-bg,
+#map.map-effects-off .home-core {
+  filter: none;
+  transition: none;
+}
+
 /* 家：出发城市 */
 /* transform-box: fill-box 必不可少：SVG 元素的缩放原点默认是整个
    viewBox 中心，少了它光环会从地图上飞过去而不是原地扩散 */
@@ -193,6 +228,12 @@ body.page-leave { opacity: 0; }
   transform-origin: center;
   transform-box: fill-box;
 }
+.home-pulse-wrap {
+  opacity: 1;
+  transition: opacity .09s ease;
+}
+#map.map-effects-fading .home-pulse-wrap { opacity: 0; }
+#map.map-effects-off .home-pulse { animation-play-state: paused; }
 @keyframes pulse {
   0% { opacity: .8; transform: scale(.6); }
   100% { opacity: 0; transform: scale(2.2); }
@@ -401,8 +442,12 @@ body.page-leave { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   .zoom-btn, #panel, .city-sticker .sticker-lod, .city-sticker .sticker-bg,
   .city-sticker, .city-sticker .sticker-outline, .city-sticker .sticker-fill,
-  .city-label, .city-time-tag, .city-dd-menu, body,
+  .city-label, .city-time-tag, .city-dd-menu, .iso-band, .home-core,
+  .home-pulse-wrap, body,
   #hover-tip { transition: none; }
+  #map.map-interacting .city-label,
+  #map.map-interacting .city-time-tag,
+  #map.map-settling .sticker-zoom { transition: none; }
   .home-pulse { animation: none; opacity: 0; }
   .root { animation: none; }
 }

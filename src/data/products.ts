@@ -51,9 +51,9 @@ export const products: ProductEntry[] = [
     slug: 'comic-manga',
     name: '漫漫书架',
     en: 'COMIC & MANGA',
-    tagline: '漫画阅读器与 AI 重绘',
+    tagline: '收藏、阅读与整理漫画',
     description:
-      '为漫画爱好者打造的 iOS / iPadOS 阅读与收藏 App:个人漫画库与阅读进度追踪、按日漫 / 欧美漫自动切换阅读方向、EPUB / MOBI / AZW3 多格式、SMB / WebDAV 远程书库，还能用 AI 重绘喜欢的画面做成头像和壁纸。',
+      '为漫画爱好者打造的阅读与收藏 App：整理个人漫画库、追踪阅读进度，支持日漫从右向左、欧美漫画从左向右及条漫纵向阅读；兼容 EPUB、MOBI、AZW3、PDF、ZIP 等格式，可连接 iCloud、Google Drive、百度网盘、Komga、OneDrive、Dropbox、SMB 与 WebDAV，另有剪藏和 AI 重绘功能。',
     image: '/media/products/comic-manga-icon.jpg',
     imageAlt: '漫漫书架 App 图标',
     links: [
@@ -70,9 +70,9 @@ export const products: ProductEntry[] = [
     slug: 'mastergo2figma',
     name: 'MasterGo2Figma',
     en: 'PLUGIN SUITE',
-    tagline: '把 MasterGo 设计稿完整搬进 Figma',
+    tagline: '把 MasterGo 图层迁移为可编辑的 Figma 图层',
     description:
-      '开源插件套件：MasterGo 端把页面导出为 JSON 包，Figma 端一键还原成可编辑图层；也支持直接解析 .mg 原生文件，大文件走本地 Python 中继流式打包，另附独立 CLI。迁移设计资产不再靠截图。',
+      '开源迁移工具：MasterGo 端的 SendToFigma 将页面和图层导出为 JSON ZIP，Figma 端的 ReceiveFromMasterGo 上传后还原为可编辑图层；也支持直接导入 MasterGo 原生 .mg 文件，并提供本地 Python 中继服务与 CLI，适合大文件和批量处理。',
     image: '/media/products/mastergo2figma.png',
     imageAlt: 'MasterGo2Figma 图标：设计图层迁移',
     links: [

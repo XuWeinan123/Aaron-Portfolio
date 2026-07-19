@@ -14,9 +14,9 @@
 | 文件 | 说明 |
 | --- | --- |
 | `index.html` | 页面骨架：顶栏(出发城市切换 + 四种出行方式切换)+ 地图 + 图例 + 攻略侧板 + 底部声明/致谢 |
-| `css/style.css` | 手账风样式(纸纹、和纸胶带、水彩色)，字体走 Google Fonts(ZCOOL KuaiLe / Zhi Mang Xing / Noto Serif SC) |
+| `css/style.css` | 手账风样式(纸纹、和纸胶带、水彩色)，以及拖动/缩放时的临时性能模式；字体走 Google Fonts(ZCOOL KuaiLe / Zhi Mang Xing / Noto Serif SC) |
 | `js/app.js` | 入口：解析 `?from=` → 选数据集 → 初始化地图；`DEPARTURES` 注册表在此 |
-| `js/map.js` | D3 地图引擎：Albers 投影、手绘抖动/水彩滤镜、等时圈栅格采样 + `d3.contours`、城市贴纸、缩放 LOD。数据经 `init({ data })` 注入，引擎本身不感知出发城市 |
+| `js/map.js` | D3 地图引擎：Albers 投影、手绘边界、等时圈栅格采样 + `d3.contours`、城市贴纸、缩放 LOD 与手势性能状态。数据经 `init({ data })` 注入，引擎本身不感知出发城市 |
 | `js/iso-worker.js` | 等时圈计算 Worker：在后台线程完成距离场采样与 `d3.contours`，向主线程返回 SVG path；模式结果按视口缓存 |
 | `js/panel.js` | 城市手账面板：交通票根对比、推荐理由、景点贴纸、逐日行程 |
 | `data/cities.js` | **基础数据源**：`CITY_DATA_HANGZHOU`(190 个目的地城市的完整攻略 + 杭州端交通与接驳常量)。攻略内容(spots/itinerary/tips)为各出发城市共用 |
@@ -30,7 +30,9 @@
 - 缩放范围 `scaleExtent [0.5, 18]`;右下角有缩放控件(放大/缩小/恢复 100%,内联 Phosphor Icons SVG),城市详情 panel 打开时自动隐藏(CSS 兄弟选择器)。
 - LOD 三档(`applyZoomStyles`):`k < 0.85` 全部地点缩成小图标(无文字);`0.85 ≤ k < 1.8` 只显示名称;`k ≥ 1.8` 名称 + 耗时。`minK` 城市仍需放大到 `minK` 才展开。
 - 反向缩放:图标屏幕尺寸 = `sqrt(k)`(温和放大),文本恒定屏幕大小(`scale(1/k)` 反向抵消),放大后不占地。
-- 拖动/缩放事件按 `requestAnimationFrame` 合帧；纯平移只更新地图根 transform，城市坐标不会逐帧重算。LOD 仅在跨过阈值时更新。
+- 拖动/缩放事件按 `requestAnimationFrame` 合帧，手势期间只更新地图根 transform；城市贴纸反向缩放与 LOD 延后到 `zoom end` 一次完成，贴纸用 180ms 过渡恢复，名称/耗时在交互时淡出、结束后按最终 LOD 淡入。
+- 手势开始后用 90ms 将阴影、Home 光环、色带视觉强度和边界扰动淡出，再停用省界 SVG 滤镜、色带混合模式与贴纸阴影；手势结束时先以零强度重新接回，再用 180ms 恢复。该策略同时作用于触屏和桌面鼠标/触控板，`prefers-reduced-motion` 下直接跳变。
+- 等时色带保留配色与分带，但不再使用 `feTurbulence + feDisplacementMap + feGaussianBlur` 水彩滤镜；这是常驻性能取舍，不随手势恢复。
 - 贴纸 transform 三层分工:`.sticker-zoom`(缩放反比例,跟手不过渡)> `.sticker-lod`(LOD 折叠,250ms 过渡)> `.sticker-bg`(hover 恒 1.18 倍)。**不要把缩放值写进 `.sticker-bg` 的 transform 属性**——CSS hover 会整体替换它。
 - 模式切换:城市节点原地更新，不克隆或重建 `.layer-cities`;等时圈由 `iso-worker.js` 后台计算并缓存，只让约十条新旧等时 path 做 300ms 交叉溶解。出发城市切换:离场 body 淡出 200ms(app.js)+ 到场 `.root` fade-in 动画 450ms。全部动效在 `prefers-reduced-motion` 下禁用。
 
