@@ -61,7 +61,10 @@
 
       <footer class="mono">
         <span>PUNCT FIXER · XUWEINAN.COM</span>
-        <span id="pwa-hint">在浏览器分享菜单选「添加到主屏幕」即可离线使用</span>
+        <div class="pwa-install">
+          <span id="pwa-hint" role="status" aria-live="polite">安装后可离线使用</span>
+          <button id="install" class="install" type="button">安装应用</button>
+        </div>
       </footer>
     </div>
 
@@ -142,13 +145,50 @@
         }
       });
 
-      // 已安装(standalone 打开)就不再提示添加主屏幕
-      if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) {
-        $('pwa-hint').textContent = '已安装为 App';
-      } else if (/Android/i.test(navigator.userAgent)) {
-        $('pwa-hint').textContent =
-          'Android 请使用最新版 Chrome 安装；若提示版本过旧，请删除旧图标后重新安装';
-      }
+      const installButton = $('install');
+      const installHint = $('pwa-hint');
+      const isStandalone =
+        matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+      const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent);
+      let installPrompt;
+
+      const markInstalled = () => {
+        installHint.textContent = '已安装为应用';
+        installButton.hidden = true;
+        installPrompt = undefined;
+      };
+
+      if (isStandalone) markInstalled();
+
+      // Chromium 会在满足安装条件时提供此事件；保存到用户主动点击按钮时再触发。
+      addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        installPrompt = event;
+        if (!isStandalone) installButton.hidden = false;
+      });
+
+      addEventListener('appinstalled', markInstalled);
+
+      installButton.addEventListener('click', async () => {
+        if (isSamsung) {
+          installHint.textContent = '三星浏览器安装包可能触发安全警告，请改用最新版 Chrome 安装';
+          return;
+        }
+
+        if (installPrompt) {
+          await installPrompt.prompt();
+          const { outcome } = await installPrompt.userChoice;
+          installHint.textContent =
+            outcome === 'accepted' ? '正在安装…' : '已取消安装，可稍后重试';
+          installPrompt = undefined;
+          return;
+        }
+
+        installHint.textContent = isIOS
+          ? '请点 Safari 分享按钮，再选「添加到主屏幕」'
+          : '请打开浏览器菜单，选择「安装应用」或「添加到主屏幕」';
+      });
 
       if ('serviceWorker' in navigator) {
         addEventListener('load', () => {
@@ -331,6 +371,22 @@
     color: var(--text-mono);
     border-top: 1px solid var(--border);
     padding-top: 12px;
+  }
+
+  .pwa-install {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  button.install {
+    min-height: 30px;
+    padding: 5px 10px;
+    border-color: var(--border-strong);
+    font: inherit;
+    color: var(--accent-strong);
   }
 
   /* 进入动效:上移 + 淡入,50ms 级联;只动 transform/opacity */

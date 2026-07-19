@@ -53,3 +53,4 @@ Cloudflare Pages 监听 `main` 分支,push 即部署。Build command `npm run bu
 5. **图片**:真实图未导出前用 `MediaSlot`(标注 Figma 节点号并登记进 `README.md` 的替换表);禁止 div 拼假截图、手绘装饰 SVG。
 6. **验证**:每次改动后 `npm run build` 零错误;视觉核对可给 URL 加 `?qa`(跳过入场动画,截图稳定)。
 7. **不可 silent 更改**:路由 slug、导航文案、既有内容语态。
+8. **PWA 安装入口**:后续新增 PWA 工具必须提供可见的「安装应用」按钮;在支持 `beforeinstallprompt` 的浏览器中仅由用户点击后调用安装提示,并监听 `appinstalled` 更新状态。iOS 等不支持主动提示的环境须给出「添加到主屏幕」步骤;三星浏览器须提示其 WebAPK 可能触发 Android 安全警告并建议改用最新版 Chrome。禁止页面加载后自动弹出安装提示。
