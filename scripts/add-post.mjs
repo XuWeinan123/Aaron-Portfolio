@@ -9,7 +9,7 @@
  *   - frontmatter 可整个省略,或只写一部分
  *   - title 缺省:取正文第一个「# 一级标题」(会从正文移除避免重复),再退回文件名
  *   - date 缺省:当前时间;给了裸时间戳则按中国时区(+08:00)理解
- *   - tags/tag、categories 均可省略;categories 缺省为「未分类」
+ *   - tags/tag、categories 均可省略;缺省均为「随笔」
  *   - 正文可用 <!-- more --> 手动指定摘要截断点,否则自动取前 140 字
  *   - 正文中引用的【相对路径图片】会被复制到 public/blog-assets/<slug>/ 并改写引用
  *
@@ -112,8 +112,9 @@ for (const input of files) {
 
   const date = parseChinaDate(fm.date) ?? new Date();
   const tags = [...new Set([...toArray(fm.tags), ...toArray(fm.tag)])];
+  if (tags.length === 0) tags.push('随笔');
   const categories = toArray(fm.categories).flat();
-  if (categories.length === 0) categories.push('未分类');
+  if (categories.length === 0) categories.push('随笔');
 
   const { body: rewritten, copied } = collectLocalImages(body, path.dirname(src), slug);
 

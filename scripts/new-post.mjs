@@ -35,9 +35,30 @@ if (!input) {
   process.exit(1);
 }
 
+// Finder 拖到终端后会生成 Shell 转义路径,例如 foo\ bar.md。
+// readline 不会像 Shell 那样解析转义,因此在判断路径前手动还原;
+// 只做字符还原,不通过 Shell 执行输入。
+function decodeTerminalPath(value) {
+  let decoded = value;
+  const first = decoded[0];
+
+  if ((first === "'" || first === '"') && decoded.at(-1) === first) {
+    decoded = decoded.slice(1, -1);
+  }
+
+  return decoded.replace(/\\(.)/gs, '$1');
+}
+
+function revealInFinder(file) {
+  if (process.platform === 'darwin') {
+    spawnSync('open', ['-R', file], { stdio: 'ignore' });
+  }
+}
+
 // 支持 ~ 开头的路径
-const expanded = input.replace(/^~(?=\/|$)/, process.env.HOME ?? '~');
-const asPath = path.resolve(expanded.replace(/^['"]|['"]$/g, ''));
+const pathInput = decodeTerminalPath(input);
+const expanded = pathInput.replace(/^~(?=\/|$)/, process.env.HOME ?? '~');
+const asPath = path.resolve(expanded);
 
 if (/\.md$/i.test(expanded) && fs.existsSync(asPath) && fs.statSync(asPath).isFile()) {
   // 路径模式:导入已有 .md 的内容来发布
@@ -45,6 +66,10 @@ if (/\.md$/i.test(expanded) && fs.existsSync(asPath) && fs.statSync(asPath).isFi
   const r = spawnSync(process.execPath, [path.join(SITE, 'scripts/add-post.mjs'), asPath], {
     stdio: 'inherit',
   });
+  if (r.status === 0) {
+    const slug = path.basename(asPath, '.md').trim().replace(/\s+/g, '-');
+    revealInFinder(path.join(DEST_DIR, `${slug}.md`));
+  }
   process.exit(r.status ?? 1);
 }
 
@@ -71,8 +96,8 @@ fs.writeFileSync(
     title,
     date: new Date(),
     author: undefined,
-    tags: [],
-    categories: ['未分类'],
+    tags: ['随笔'],
+    categories: ['随笔'],
     body: '',
   })
 );
@@ -81,3 +106,5 @@ console.log(`✓ 已创建空文章:src/content/blog/${slug}.md`);
 console.log(`  上线地址:/blog/${new GithubSlugger().slug(slug)}/`);
 console.log('  打开文件填写正文即可;分类/标签在 frontmatter 里补充。');
 console.log('  验证:npm run dev 或 npm run build');
+
+revealInFinder(destFile);
