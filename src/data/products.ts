@@ -106,6 +106,17 @@ export const products: ProductEntry[] = [
 
 export const tools: ToolEntry[] = [
   {
+    slug: 'flypy',
+    name: '小鹤双拼练习器',
+    en: 'FLYPY TRAINER',
+    description:
+      '专注小鹤双拼的离线练习器：支持实体键盘与可收起的触屏软键盘，逐键提示声母和韵母；也可以粘贴自己的中文文本反复练习。',
+    pwa: true,
+    status: 'shipped',
+    tags: ['PWA', '小鹤双拼', '离线可用'],
+    date: '2026.07',
+  },
+  {
     slug: 'punct',
     name: '标点修正',
     en: 'PUNCT FIXER',

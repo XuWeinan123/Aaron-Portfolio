@@ -1,0 +1,1331 @@
+---
+import { FLYPY_KEYS } from '../../lib/flypy-core.mjs';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="只练小鹤双拼。支持实体键盘与可收起的触屏软键盘，自定义中文文本，离线可用。"
+    />
+    <meta name="theme-color" content="#f5f0df" />
+    <link rel="manifest" href="/tools/flypy/manifest.webmanifest" />
+    <link rel="icon" href="/tools/flypy/icon-192.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/tools/flypy/icon-192.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="小鹤双拼" />
+    <title>小鹤双拼练习器 · Flypy Trainer</title>
+  </head>
+  <body>
+    <div class="app" id="app">
+      <header class="topbar">
+        <a class="back" href="/products/" aria-label="返回造物页">
+          <span aria-hidden="true">←</span><span class="back-label">造物</span>
+        </a>
+        <div class="brand">
+          <span class="brand-dot" aria-hidden="true"></span>
+          <span>小鹤双拼练习器</span>
+        </div>
+        <div class="top-actions">
+          <button class="quiet" id="install" type="button">安装应用</button>
+          <button class="quiet" id="open-settings" type="button">设置</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="scoreboard" aria-label="练习数据">
+          <div class="score">
+            <span>字 / 分</span>
+            <output id="cpm">0</output>
+          </div>
+          <div class="score">
+            <span>准确率</span>
+            <output id="accuracy">100%</output>
+          </div>
+          <div class="score score-time">
+            <span>用时</span>
+            <output id="elapsed">00:00</output>
+          </div>
+          <button id="reset" class="reset" type="button">重新开始</button>
+        </section>
+
+        <section class="practice" aria-labelledby="practice-title">
+          <h1 id="practice-title" class="visually-hidden">小鹤双拼练习</h1>
+          <div class="focus-card" aria-live="polite">
+            <div class="focus-copy">
+              <span class="eyebrow">当前汉字</span>
+              <strong id="focus-char">清</strong>
+              <span id="focus-pinyin">qing</span>
+            </div>
+            <div class="code" id="focus-code" aria-label="当前汉字双拼编码"></div>
+          </div>
+
+          <div class="text-wrap">
+            <div id="practice-text" class="practice-text" aria-label="练习文本"></div>
+          </div>
+
+          <p class="instruction" id="instruction" role="status" aria-live="polite">
+            点击下方按键，或直接使用英文键盘输入。
+          </p>
+        </section>
+      </main>
+
+      <section class="keyboard-dock" id="keyboard-dock" aria-label="小鹤双拼软键盘">
+        <button
+          class="keyboard-toggle"
+          id="keyboard-toggle"
+          type="button"
+          aria-expanded="true"
+          aria-controls="keyboard-panel">
+          <span id="keyboard-toggle-label">收起软键盘</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
+        <div class="keyboard-panel" id="keyboard-panel">
+          <div class="keyboard">
+            {
+              FLYPY_KEYS.map((row) => (
+                <div class="key-row">
+                  {row.map(([key, hint]) => (
+                    <button
+                      class="key"
+                      type="button"
+                      data-key={key}
+                      aria-label={`按键 ${key.toUpperCase()}，对应 ${hint}`}>
+                      <strong>{key.toUpperCase()}</strong>
+                      <span>{hint}</span>
+                    </button>
+                  ))}
+                </div>
+              ))
+            }
+          </div>
+          <p class="keyboard-note">英文模式 · 绿色是下一键 · 输错后当前音节重来</p>
+        </div>
+      </section>
+
+      <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    </div>
+
+    <dialog id="settings-dialog" class="dialog">
+      <form method="dialog" class="dialog-card" id="settings-form">
+        <div class="dialog-head">
+          <div>
+            <span class="eyebrow">练习设置</span>
+            <h2>用自己的文字练习</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="关闭设置">×</button>
+        </div>
+        <label for="custom-text">自定义练习文本</label>
+        <textarea
+          id="custom-text"
+          maxlength="1000"
+          rows="7"
+          placeholder="粘贴一段中文，最多 1000 字。标点会保留显示，但不需要输入。"></textarea>
+        <div class="textarea-meta">
+          <span id="settings-error" role="alert"></span>
+          <span><output id="char-count">0</output> / 1000</span>
+        </div>
+        <div class="best-card">
+          <div>
+            <span>本机最佳速度</span>
+            <strong><output id="best-cpm">—</output> 字 / 分</strong>
+          </div>
+          <button id="clear-score" class="text-button" type="button">清除本机成绩</button>
+        </div>
+        <div class="dialog-actions">
+          <button id="restore-default" class="secondary" type="button">恢复内置文本</button>
+          <button id="start-custom" class="primary" type="button">开始练习</button>
+        </div>
+        <p class="privacy">文字只在当前设备处理与保存，不会上传。</p>
+      </form>
+    </dialog>
+
+    <dialog id="summary-dialog" class="dialog summary-dialog">
+      <div class="dialog-card">
+        <span class="eyebrow">本段完成</span>
+        <h2>节奏已经记住了</h2>
+        <div class="summary-grid">
+          <div><span>速度</span><strong id="summary-cpm">0</strong><small>字 / 分</small></div>
+          <div><span>准确率</span><strong id="summary-accuracy">100%</strong></div>
+          <div><span>用时</span><strong id="summary-time">00:00</strong></div>
+          <div><span>错键</span><strong id="summary-errors">0</strong><small>次</small></div>
+        </div>
+        <p id="best-message" class="best-message"></p>
+        <div class="dialog-actions">
+          <button id="repeat" class="secondary" type="button">再练一次</button>
+          <button id="next" class="primary" type="button">下一段</button>
+        </div>
+      </div>
+    </dialog>
+
+    <script>
+      import {
+        BUILT_IN_TEXTS,
+        createSession,
+        formatElapsed,
+        getCurrentUnit,
+        getMetrics,
+        inputKey,
+      } from '../../lib/flypy-core.mjs';
+
+      const STORAGE = {
+        customText: 'flypy:custom-text',
+        keyboardOpen: 'flypy:keyboard-open',
+        builtInIndex: 'flypy:built-in-index',
+        best: 'flypy:best',
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const app = $('app');
+      const practiceText = $('practice-text');
+      const focusChar = $('focus-char');
+      const focusPinyin = $('focus-pinyin');
+      const focusCode = $('focus-code');
+      const instruction = $('instruction');
+      const settingsDialog = $('settings-dialog');
+      const summaryDialog = $('summary-dialog');
+      const customText = $('custom-text');
+      const keyButtons = [...document.querySelectorAll('[data-key]')];
+      let builtInIndex = Number(localStorage.getItem(STORAGE.builtInIndex) ?? 0) % BUILT_IN_TEXTS.length;
+      let activeCustomText = localStorage.getItem(STORAGE.customText) ?? '';
+      let activeText = activeCustomText || BUILT_IN_TEXTS[builtInIndex];
+      let session = createSession(activeText);
+      let completionShown = false;
+      let toastTimer;
+
+      const getBest = () => {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE.best)) ?? null;
+        } catch {
+          return null;
+        }
+      };
+
+      const showToast = (message) => {
+        const toast = $('toast');
+        toast.textContent = message;
+        toast.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => (toast.hidden = true), 4200);
+      };
+
+      const renderText = () => {
+        const current = getCurrentUnit(session);
+        const currentIndex = current?.index ?? Infinity;
+        practiceText.replaceChildren(
+          ...session.units.map((unit) => {
+            const span = document.createElement('span');
+            span.textContent = unit.char;
+            span.className = 'unit';
+            if (!unit.practice) span.classList.add('passive');
+            if (unit.index < currentIndex || session.status === 'complete') span.classList.add('done');
+            if (unit.index === currentIndex) {
+              span.classList.add('current');
+              span.setAttribute('aria-current', 'true');
+            }
+            return span;
+          })
+        );
+      };
+
+      const renderFocus = () => {
+        const current = getCurrentUnit(session);
+        if (!current) return;
+        focusChar.textContent = current.char;
+        focusPinyin.textContent = current.pinyin;
+        focusCode.replaceChildren(
+          ...[...current.code].map((key, index) => {
+            const chip = document.createElement('span');
+            chip.textContent = key.toUpperCase();
+            chip.className = 'code-chip';
+            if (index < session.keyIndex) chip.classList.add('done');
+            if (index === session.keyIndex) chip.classList.add('current');
+            return chip;
+          })
+        );
+
+        const expected = current.code[session.keyIndex];
+        keyButtons.forEach((button) => {
+          button.classList.toggle('target', button.dataset.key === expected);
+          button.classList.remove('wrong', 'pressed');
+        });
+      };
+
+      const renderStats = () => {
+        const metrics = getMetrics(session);
+        $('cpm').textContent = String(Math.round(metrics.cpm));
+        $('accuracy').textContent = `${Math.round(metrics.accuracy)}%`;
+        $('elapsed').textContent = formatElapsed(metrics.elapsedMs);
+      };
+
+      const render = () => {
+        renderText();
+        renderFocus();
+        renderStats();
+      };
+
+      const saveBest = (metrics) => {
+        const previous = getBest();
+        const candidate = {
+          cpm: Math.round(metrics.cpm),
+          accuracy: Math.round(metrics.accuracy),
+          date: new Date().toISOString(),
+        };
+        const isNew = !previous || candidate.cpm > previous.cpm;
+        if (isNew) localStorage.setItem(STORAGE.best, JSON.stringify(candidate));
+        return isNew;
+      };
+
+      const showSummary = () => {
+        if (completionShown) return;
+        completionShown = true;
+        const metrics = getMetrics(session);
+        $('summary-cpm').textContent = String(Math.round(metrics.cpm));
+        $('summary-accuracy').textContent = `${Math.round(metrics.accuracy)}%`;
+        $('summary-time').textContent = formatElapsed(metrics.elapsedMs);
+        $('summary-errors').textContent = String(session.errors);
+        const isNewBest = saveBest(metrics);
+        $('best-message').textContent = isNewBest ? '新的本机速度纪录。' : '保持准确，速度会自然跟上。';
+        $('next').textContent = activeCustomText ? '修改文本' : '下一段';
+        summaryDialog.showModal();
+      };
+
+      const flashKey = (key, state) => {
+        const button = keyButtons.find((item) => item.dataset.key === key);
+        if (!button) return;
+        button.classList.add(state === 'error' ? 'wrong' : 'pressed');
+      };
+
+      const handleKey = (key) => {
+        if (settingsDialog.open || summaryDialog.open || session.status === 'complete') return;
+        const previous = session;
+        session = inputKey(session, key);
+        if (session === previous) return;
+        instruction.textContent =
+          session.lastInput === 'error' ? '这个音节从第一键重来。' : '很好，继续保持节奏。';
+        render();
+        flashKey(key, session.lastInput);
+        if (session.status === 'complete') setTimeout(showSummary, 260);
+      };
+
+      const restart = (text = activeText) => {
+        activeText = text;
+        session = createSession(activeText);
+        completionShown = false;
+        instruction.textContent = '点击下方按键，或直接使用英文键盘输入。';
+        render();
+      };
+
+      keyButtons.forEach((button) => button.addEventListener('click', () => handleKey(button.dataset.key)));
+
+      addEventListener('keydown', (event) => {
+        if (
+          event.repeat ||
+          event.isComposing ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey ||
+          event.target instanceof HTMLTextAreaElement ||
+          event.target instanceof HTMLInputElement
+        )
+          return;
+        if (/^[a-z]$/i.test(event.key)) {
+          event.preventDefault();
+          handleKey(event.key);
+        }
+      });
+
+      $('reset').addEventListener('click', () => restart());
+      $('repeat').addEventListener('click', () => {
+        summaryDialog.close();
+        restart();
+      });
+      $('next').addEventListener('click', () => {
+        summaryDialog.close();
+        if (activeCustomText) {
+          updateSettings();
+          settingsDialog.showModal();
+          return;
+        }
+        builtInIndex = (builtInIndex + 1) % BUILT_IN_TEXTS.length;
+        localStorage.setItem(STORAGE.builtInIndex, String(builtInIndex));
+        restart(BUILT_IN_TEXTS[builtInIndex]);
+      });
+
+      const setKeyboardOpen = (open) => {
+        app.classList.toggle('keyboard-collapsed', !open);
+        $('keyboard-toggle').setAttribute('aria-expanded', String(open));
+        $('keyboard-toggle-label').textContent = open ? '收起软键盘' : '呼出软键盘';
+        localStorage.setItem(STORAGE.keyboardOpen, String(open));
+      };
+
+      const savedKeyboard = localStorage.getItem(STORAGE.keyboardOpen);
+      setKeyboardOpen(savedKeyboard !== 'false');
+      $('keyboard-toggle').addEventListener('click', () => {
+        setKeyboardOpen($('keyboard-toggle').getAttribute('aria-expanded') !== 'true');
+      });
+
+      const updateSettings = () => {
+        customText.value = activeCustomText;
+        $('char-count').textContent = String(customText.value.length);
+        $('settings-error').textContent = '';
+        const best = getBest();
+        $('best-cpm').textContent = best ? String(best.cpm) : '—';
+      };
+
+      $('open-settings').addEventListener('click', () => {
+        updateSettings();
+        settingsDialog.showModal();
+      });
+      customText.addEventListener('input', () => {
+        $('char-count').textContent = String(customText.value.length);
+        $('settings-error').textContent = '';
+      });
+      $('start-custom').addEventListener('click', () => {
+        const value = customText.value.trim();
+        try {
+          const nextSession = createSession(value);
+          activeCustomText = value;
+          activeText = value;
+          localStorage.setItem(STORAGE.customText, value);
+          session = nextSession;
+          completionShown = false;
+          settingsDialog.close();
+          render();
+        } catch (error) {
+          $('settings-error').textContent = error.message;
+        }
+      });
+      $('restore-default').addEventListener('click', () => {
+        activeCustomText = '';
+        localStorage.removeItem(STORAGE.customText);
+        customText.value = '';
+        settingsDialog.close();
+        restart(BUILT_IN_TEXTS[builtInIndex]);
+        showToast('已恢复内置练习文本');
+      });
+      $('clear-score').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE.best);
+        $('best-cpm').textContent = '—';
+        showToast('已清除本机成绩');
+      });
+
+      document.querySelector('.back').addEventListener('click', (event) => {
+        if (history.length > 1 && document.referrer.startsWith(location.origin)) {
+          event.preventDefault();
+          history.back();
+        }
+      });
+
+      const installButton = $('install');
+      const isStandalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+      const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent);
+      let installPrompt;
+
+      const markInstalled = () => {
+        installButton.textContent = '已安装';
+        installButton.disabled = true;
+        installPrompt = undefined;
+      };
+
+      if (isStandalone) markInstalled();
+      addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        installPrompt = event;
+      });
+      addEventListener('appinstalled', () => {
+        markInstalled();
+        showToast('已经安装到设备');
+      });
+      installButton.addEventListener('click', async () => {
+        if (isSamsung) {
+          showToast('三星浏览器安装包可能触发安全警告，建议改用最新版 Chrome 安装');
+          return;
+        }
+        if (installPrompt) {
+          await installPrompt.prompt();
+          const { outcome } = await installPrompt.userChoice;
+          showToast(outcome === 'accepted' ? '正在安装…' : '已取消安装，可以稍后重试');
+          installPrompt = undefined;
+          return;
+        }
+        showToast(
+          isIOS
+            ? '请点 Safari 分享按钮，再选择「添加到主屏幕」'
+            : '请打开浏览器菜单，选择「安装应用」或「添加到主屏幕」'
+        );
+      });
+
+      if ('serviceWorker' in navigator) {
+        addEventListener('load', () => {
+          navigator.serviceWorker.register('/tools/flypy/sw.js', { updateViaCache: 'none' });
+        });
+      }
+
+      setInterval(() => {
+        if (session.status === 'running') renderStats();
+      }, 500);
+      render();
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --cream: #f5f0df;
+    --paper: #fffdf6;
+    --ink: #262b29;
+    --muted: #727a73;
+    --line: #ded9c9;
+    --green: #59a940;
+    --green-dark: #347f2f;
+    --green-pale: #e7f3dc;
+    --orange: #f26d3d;
+    --orange-pale: #fff0e8;
+    --shadow: 0 10px 28px rgb(50 66 45 / 10%);
+    --keyboard-height: clamp(248px, 33dvh, 330px);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    min-height: 100%;
+    margin: 0;
+  }
+
+  body {
+    overflow-x: hidden;
+    background:
+      radial-gradient(circle at 18% 5%, rgb(255 255 255 / 72%), transparent 32rem),
+      var(--cream);
+    color: var(--ink);
+    font-family: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans SC', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  textarea {
+    font: inherit;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .app {
+    min-height: 100dvh;
+    padding-bottom: calc(var(--keyboard-height) + env(safe-area-inset-bottom));
+    transition: padding-bottom 0.35s var(--ease-out);
+  }
+
+  .topbar {
+    min-height: 58px;
+    padding: calc(10px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-left)) 10px
+      max(16px, env(safe-area-inset-right));
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgb(133 126 103 / 18%);
+  }
+
+  .back,
+  .quiet {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .back:hover,
+  .quiet:hover {
+    color: var(--green-dark);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 760;
+  }
+
+  .brand-dot {
+    width: 10px;
+    height: 10px;
+    border: 3px solid var(--green);
+    border-radius: 50% 50% 50% 10%;
+    transform: rotate(-35deg);
+  }
+
+  .top-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .quiet {
+    min-height: 34px;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+  }
+
+  .quiet:hover {
+    border-color: var(--line);
+    background: rgb(255 253 246 / 72%);
+  }
+
+  .quiet:active,
+  .reset:active,
+  .primary:active,
+  .secondary:active,
+  .key:active {
+    transform: translateY(2px);
+  }
+
+  main {
+    width: min(920px, calc(100% - 32px));
+    margin: 0 auto;
+  }
+
+  .scoreboard {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .score {
+    display: grid;
+    gap: 2px;
+  }
+
+  .score span,
+  .eyebrow {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .score output {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 18px;
+    font-weight: 750;
+  }
+
+  .reset {
+    margin-left: auto;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgb(255 253 246 / 62%);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    transition: 0.16s ease;
+  }
+
+  .reset:hover {
+    border-color: var(--green);
+    color: var(--green-dark);
+  }
+
+  .practice {
+    padding: clamp(18px, 4vh, 40px) 0 30px;
+  }
+
+  .focus-card {
+    width: min(440px, 100%);
+    min-height: 118px;
+    margin: 0 auto;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    border: 1px solid #d3dfc8;
+    border-bottom: 4px solid #b9cdae;
+    border-radius: 22px;
+    background: var(--paper);
+    box-shadow: var(--shadow);
+  }
+
+  .focus-copy {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: baseline;
+    gap: 2px 12px;
+  }
+
+  .focus-copy .eyebrow {
+    grid-column: 1 / -1;
+  }
+
+  .focus-copy strong {
+    font-size: clamp(42px, 8vw, 58px);
+    line-height: 1;
+  }
+
+  .focus-copy > span:last-child {
+    color: var(--muted);
+    font: 650 14px ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .code {
+    display: flex;
+    gap: 8px;
+  }
+
+  .code-chip {
+    width: 52px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-bottom: 4px solid #c9c3b1;
+    border-radius: 14px;
+    background: #f8f5ea;
+    color: var(--muted);
+    font: 800 24px ui-monospace, SFMono-Regular, Menlo, monospace;
+    transition: 0.18s ease;
+  }
+
+  .code-chip.current {
+    border-color: var(--green);
+    border-bottom-color: var(--green-dark);
+    background: var(--green-pale);
+    color: var(--green-dark);
+  }
+
+  .code-chip.done {
+    border-color: var(--green);
+    border-bottom-color: var(--green-dark);
+    background: var(--green);
+    color: white;
+  }
+
+  .text-wrap {
+    margin-top: clamp(20px, 4vh, 38px);
+    padding: 20px clamp(18px, 4vw, 34px);
+    border: 1px solid rgb(133 126 103 / 18%);
+    border-radius: 18px;
+    background: rgb(255 253 246 / 55%);
+  }
+
+  .practice-text {
+    font-size: clamp(25px, 4.1vw, 38px);
+    font-weight: 650;
+    line-height: 1.85;
+    letter-spacing: 0.06em;
+    text-align: center;
+  }
+
+  .unit {
+    position: relative;
+    display: inline;
+    color: #b3ae9f;
+    transition: color 0.18s ease, background-color 0.18s ease;
+  }
+
+  .unit.done {
+    color: var(--green-dark);
+  }
+
+  .unit.current {
+    border-radius: 4px;
+    background: var(--orange-pale);
+    color: var(--orange);
+    box-shadow: 0 3px 0 rgb(242 109 61 / 22%);
+  }
+
+  .instruction {
+    min-height: 22px;
+    margin: 14px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .keyboard-dock {
+    position: fixed;
+    z-index: 20;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: calc(var(--keyboard-height) + env(safe-area-inset-bottom));
+    padding: 10px max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom)
+      max(8px, env(safe-area-inset-left));
+    border-top: 1px solid #d4cebb;
+    background: rgb(238 233 216 / 96%);
+    box-shadow: 0 -16px 40px rgb(63 70 54 / 10%);
+    backdrop-filter: blur(18px);
+    transition: height 0.35s var(--ease-out);
+  }
+
+  .keyboard-toggle {
+    height: 26px;
+    margin: -5px auto 5px;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 750;
+  }
+
+  .chevron {
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 0.25s ease;
+  }
+
+  .keyboard-panel {
+    height: calc(100% - 26px);
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
+
+  .keyboard {
+    width: min(960px, 100%);
+    height: calc(100% - 26px);
+    margin: 0 auto;
+    display: grid;
+    grid-template-rows: repeat(3, 1fr);
+    gap: clamp(5px, 0.8vh, 8px);
+  }
+
+  .key-row {
+    display: flex;
+    justify-content: center;
+    gap: clamp(4px, 0.7vw, 8px);
+  }
+
+  .key {
+    min-width: 0;
+    max-width: 78px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    border: 1px solid #d7d1bd;
+    border-bottom: 4px solid #c5beaa;
+    border-radius: clamp(7px, 1.2vw, 12px);
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 3px 8px rgb(57 66 50 / 8%);
+    transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease,
+      transform 0.1s ease;
+    touch-action: manipulation;
+  }
+
+  .key:hover {
+    border-color: #a4b99a;
+  }
+
+  .key strong {
+    font: 800 clamp(14px, 2.2vh, 20px) ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .key span {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: clamp(7px, 1.3vh, 11px);
+    font-weight: 700;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .key.target {
+    border-color: var(--green);
+    border-bottom-color: var(--green-dark);
+    background: var(--green-pale);
+    color: var(--green-dark);
+    animation: target-pulse 1.4s ease-in-out infinite;
+  }
+
+  .key.target span {
+    color: var(--green-dark);
+  }
+
+  .key.wrong {
+    border-color: var(--orange);
+    border-bottom-color: #bd4827;
+    background: var(--orange);
+    color: white;
+    animation: wrong-shake 0.24s ease both;
+  }
+
+  .key.wrong span {
+    color: white;
+  }
+
+  .key.pressed {
+    transform: translateY(3px);
+  }
+
+  .keyboard-note {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+    text-align: center;
+  }
+
+  .app.keyboard-collapsed {
+    padding-bottom: calc(44px + env(safe-area-inset-bottom));
+  }
+
+  .keyboard-collapsed .keyboard-dock {
+    height: calc(44px + env(safe-area-inset-bottom));
+  }
+
+  .keyboard-collapsed .keyboard-panel {
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .keyboard-collapsed .chevron {
+    transform: rotate(225deg) translate(-2px, -2px);
+  }
+
+  .toast {
+    position: fixed;
+    z-index: 60;
+    bottom: calc(22px + env(safe-area-inset-bottom));
+    left: 50%;
+    width: max-content;
+    max-width: calc(100% - 32px);
+    padding: 11px 16px;
+    border-radius: 12px;
+    background: var(--ink);
+    color: white;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    text-align: center;
+    transform: translateX(-50%);
+  }
+
+  .app:not(.keyboard-collapsed) .toast {
+    bottom: calc(var(--keyboard-height) + 16px + env(safe-area-inset-bottom));
+  }
+
+  .dialog {
+    width: min(520px, calc(100% - 24px));
+    max-height: calc(100dvh - 24px);
+    padding: 0;
+    overflow: auto;
+    border: 0;
+    border-radius: 24px;
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 24px 80px rgb(30 40 31 / 28%);
+  }
+
+  .dialog::backdrop {
+    background: rgb(34 43 35 / 45%);
+    backdrop-filter: blur(5px);
+  }
+
+  .dialog-card {
+    margin: 0;
+    padding: clamp(22px, 5vw, 32px);
+  }
+
+  .dialog-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .dialog h2 {
+    margin: 5px 0 22px;
+    font-size: clamp(23px, 5vw, 30px);
+    line-height: 1.15;
+  }
+
+  .icon-button {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 24px;
+  }
+
+  .dialog label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 750;
+  }
+
+  .dialog textarea {
+    width: 100%;
+    padding: 14px;
+    resize: vertical;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #f8f5ea;
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .dialog textarea:focus-visible,
+  button:focus-visible,
+  a:focus-visible {
+    outline: 3px solid rgb(89 169 64 / 38%);
+    outline-offset: 2px;
+  }
+
+  .textarea-meta {
+    min-height: 22px;
+    margin-top: 5px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  #settings-error {
+    color: var(--orange);
+    font-weight: 700;
+  }
+
+  .best-card {
+    margin-top: 15px;
+    padding: 13px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid #dce8d3;
+    border-radius: 14px;
+    background: var(--green-pale);
+  }
+
+  .best-card > div {
+    display: grid;
+    gap: 2px;
+  }
+
+  .best-card span {
+    color: var(--green-dark);
+    font-size: 11px;
+  }
+
+  .best-card strong {
+    font-size: 14px;
+  }
+
+  .text-button {
+    padding: 5px;
+    border: 0;
+    background: transparent;
+    color: var(--green-dark);
+    font-size: 11px;
+    font-weight: 750;
+  }
+
+  .dialog-actions {
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .primary,
+  .secondary {
+    min-height: 48px;
+    border-radius: 14px;
+    font-weight: 800;
+    transition: 0.15s ease;
+  }
+
+  .primary {
+    border: 1px solid var(--green-dark);
+    border-bottom: 4px solid var(--green-dark);
+    background: var(--green);
+    color: white;
+  }
+
+  .primary:hover {
+    background: #63b948;
+  }
+
+  .secondary {
+    border: 1px solid var(--line);
+    border-bottom: 4px solid #c9c3b1;
+    background: #f8f5ea;
+    color: var(--ink);
+  }
+
+  .privacy {
+    margin: 13px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .summary-grid > div {
+    min-height: 96px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #f8f5ea;
+  }
+
+  .summary-grid span,
+  .summary-grid small {
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .summary-grid strong {
+    font: 800 30px ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .best-message {
+    min-height: 20px;
+    color: var(--green-dark);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  @keyframes target-pulse {
+    50% {
+      box-shadow: 0 0 0 4px rgb(89 169 64 / 15%);
+    }
+  }
+
+  @keyframes wrong-shake {
+    30% {
+      transform: translateX(-3px);
+    }
+    70% {
+      transform: translateX(3px);
+    }
+  }
+
+  @media (max-width: 620px) {
+    :root {
+      --keyboard-height: clamp(260px, 33dvh, 304px);
+    }
+
+    .topbar {
+      grid-template-columns: auto 1fr auto;
+    }
+
+    .brand {
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .brand-dot {
+      display: none;
+    }
+
+    .back {
+      font-size: 18px;
+    }
+
+    .back-label {
+      display: none;
+    }
+
+    .top-actions {
+      gap: 0;
+    }
+
+    .quiet {
+      padding-inline: 7px;
+      font-size: 11px;
+    }
+
+    main {
+      width: min(100% - 20px, 920px);
+    }
+
+    .scoreboard {
+      min-height: 60px;
+      gap: 15px;
+    }
+
+    .score-time {
+      display: none;
+    }
+
+    .score output {
+      font-size: 16px;
+    }
+
+    .reset {
+      padding-inline: 8px;
+      font-size: 10px;
+    }
+
+    .practice {
+      padding-top: 14px;
+    }
+
+    .focus-card {
+      min-height: 94px;
+      padding: 13px 16px;
+      border-radius: 17px;
+    }
+
+    .focus-copy strong {
+      font-size: 40px;
+    }
+
+    .code-chip {
+      width: 44px;
+      border-radius: 12px;
+      font-size: 20px;
+    }
+
+    .text-wrap {
+      max-height: calc(65dvh - 250px);
+      min-height: 108px;
+      margin-top: 14px;
+      padding: 12px 14px;
+      overflow: auto;
+    }
+
+    .practice-text {
+      font-size: clamp(22px, 7vw, 30px);
+      line-height: 1.75;
+    }
+
+    .instruction {
+      margin-top: 9px;
+      font-size: 11px;
+    }
+
+    .key-row {
+      gap: 3px;
+    }
+
+    .key {
+      border-bottom-width: 3px;
+    }
+
+    .key strong {
+      font-size: 16px;
+    }
+
+    .key span {
+      font-size: 7px;
+      letter-spacing: -0.02em;
+    }
+  }
+
+  @media (orientation: landscape) and (max-height: 560px) {
+    :root {
+      --keyboard-height: 45dvh;
+    }
+
+    .scoreboard {
+      min-height: 50px;
+    }
+
+    .practice {
+      padding-top: 10px;
+    }
+
+    .focus-card {
+      min-height: 76px;
+      padding-block: 8px;
+    }
+
+    .focus-copy strong {
+      font-size: 34px;
+    }
+
+    .text-wrap {
+      margin-top: 10px;
+      padding-block: 8px;
+    }
+
+    .practice-text {
+      font-size: 23px;
+      line-height: 1.55;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    .key:active,
+    .quiet:active,
+    .reset:active,
+    .primary:active,
+    .secondary:active {
+      transform: none;
+    }
+  }
+</style>
