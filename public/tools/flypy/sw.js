@@ -1,5 +1,5 @@
 /* 小鹤双拼练习器 PWA：预缓存入口，并将同源构建资源写入运行时缓存。 */
-const CACHE = 'flypy-v3';
+const CACHE = 'flypy-v4';
 const SHELL = [
   '/tools/flypy/',
   '/tools/flypy/?source=pwa',

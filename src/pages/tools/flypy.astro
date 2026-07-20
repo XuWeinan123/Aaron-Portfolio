@@ -225,6 +225,7 @@ import { FLYPY_KEYS } from '../../lib/flypy-core.mjs';
       let session = null;
       let completionShown = false;
       let toastTimer;
+      let queueRetryTimer;
       let queueTask = Promise.resolve();
 
       const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
@@ -242,7 +243,10 @@ import { FLYPY_KEYS } from '../../lib/flypy-core.mjs';
         try {
           const parsed = JSON.parse(localStorage.getItem(STORAGE.quoteQueue));
           if (!Array.isArray(parsed)) return [];
-          return parsed.map(normalizeQuote).filter((item) => item?.text).slice(0, 6);
+          return parsed
+            .map(normalizeQuote)
+            .filter((item) => item?.text && !item.uuid.startsWith('fallback-'))
+            .slice(0, 6);
         } catch {
           return [];
         }
@@ -276,7 +280,7 @@ import { FLYPY_KEYS } from '../../lib/flypy-core.mjs';
         }
       };
 
-      const ensureQuoteQueue = async (target = 3) => {
+      const ensureQuoteQueue = async (target = 3, allowFallback = false) => {
         let attempts = 0;
         while (readQuoteQueue().length < target && attempts < target * 2) {
           attempts++;
@@ -291,15 +295,19 @@ import { FLYPY_KEYS } from '../../lib/flypy-core.mjs';
           }
         }
         const queue = readQuoteQueue();
-        for (const quote of fallbackQuotes) {
-          if (queue.length >= target) break;
-          if (!queue.some((item) => item.text === quote.text)) queue.push(quote);
-        }
         saveQuoteQueue(queue);
-        return queue;
+        return queue.length || !allowFallback ? queue : [fallbackQuotes[0]];
       };
 
-      const refillQuoteQueue = () => withQueueLock(() => ensureQuoteQueue(3));
+      const refillQuoteQueue = () =>
+        withQueueLock(() => ensureQuoteQueue(3)).finally(() => {
+          clearTimeout(queueRetryTimer);
+          if (activeMode === 'hitokoto' && readQuoteQueue().length < 3) {
+            queueRetryTimer = setTimeout(() => {
+              if (activeMode === 'hitokoto') void refillQuoteQueue();
+            }, 10_000);
+          }
+        });
       const takeNextQuote = async () => {
         const cached = readQuoteQueue();
         if (cached.length) {
@@ -310,7 +318,7 @@ import { FLYPY_KEYS } from '../../lib/flypy-core.mjs';
         }
 
         return withQueueLock(async () => {
-          const queue = await ensureQuoteQueue(1);
+          const queue = await ensureQuoteQueue(1, true);
           const quote = queue.shift() ?? fallbackQuotes[0];
           saveQuoteQueue(queue);
           void refillQuoteQueue();
