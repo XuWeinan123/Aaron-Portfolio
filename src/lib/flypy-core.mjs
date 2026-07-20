@@ -35,18 +35,9 @@ export const FLYPY_KEYS = [
   ],
 ];
 
-export const BUILT_IN_TEXTS = [
+export const FALLBACK_TEXTS = [
   '清晨的风穿过街角，树叶轻轻摇晃。',
-  '我把今天的计划写在纸上，一件一件完成。',
   '学会新的输入方式，需要耐心，也需要重复。',
-  '咖啡刚刚煮好，窗外的阳光正亮。',
-  '周末去公园散步，顺便拍几张照片。',
-  '输入越准确，速度自然会慢慢提高。',
-  '遇到生疏的韵母，停下来多练几遍。',
-  '键盘上的每个位置，都在等待手指记住。',
-  '夜色安静下来，远处还有零星灯光。',
-  '把复杂的事情拆开，下一步就会清楚。',
-  '今天比昨天熟练一点，已经值得开心。',
   '保持放松，注意节奏，不必急着追求速度。',
 ];
 
@@ -126,13 +117,23 @@ export function buildPracticeUnits(text) {
   });
 }
 
-export function createSession(text, now = 0) {
-  const units = buildPracticeUnits(text);
+export function shufflePracticeUnits(units, random = Math.random) {
+  const shuffled = units.filter((unit) => unit.practice).map((unit) => ({ ...unit }));
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const target = Math.floor(random() * (index + 1));
+    [shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
+  }
+  return shuffled.map((unit, index) => ({ ...unit, index }));
+}
+
+export function createSession(text, { now = 0, randomize = false, random = Math.random } = {}) {
+  const sourceUnits = buildPracticeUnits(text);
+  const units = randomize ? shufflePracticeUnits(sourceUnits, random) : sourceUnits;
   const practiceIndexes = units.filter((unit) => unit.practice).map((unit) => unit.index);
   if (!practiceIndexes.length) throw new Error('请输入至少一个可练习的汉字');
 
   return {
-    text: String(text ?? '').slice(0, 1000),
+    text: units.map((unit) => unit.char).join(''),
     units,
     practiceIndexes,
     cursor: 0,

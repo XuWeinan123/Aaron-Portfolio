@@ -8,6 +8,7 @@ import {
   formatElapsed,
   getMetrics,
   inputKey,
+  shufflePracticeUnits,
 } from '../src/lib/flypy-core.mjs';
 
 test('encodes initials, compound initials and ü finals', () => {
@@ -42,7 +43,7 @@ test('builds contextual practice units and skips punctuation', () => {
 });
 
 test('wrong input resets the current syllable and affects accuracy', () => {
-  let session = createSession('水', 0);
+  let session = createSession('水', { now: 0 });
   session = inputKey(session, 'u', 1000);
   assert.equal(session.keyIndex, 1);
   session = inputKey(session, 'x', 1500);
@@ -54,6 +55,17 @@ test('wrong input resets the current syllable and affects accuracy', () => {
   assert.equal(session.status, 'complete');
   assert.equal(session.completedChars, 1);
   assert.equal(Math.round(getMetrics(session).accuracy), 75);
+});
+
+test('random mode shuffles only practice characters', () => {
+  const source = buildPracticeUnits('甲，乙丙。');
+  const values = [0, 0];
+  const shuffled = shufflePracticeUnits(source, () => values.shift() ?? 0);
+  assert.equal(shuffled.map((unit) => unit.char).join(''), '乙丙甲');
+  assert.ok(shuffled.every((unit) => unit.practice));
+
+  const session = createSession('甲，乙丙。', { randomize: true, random: () => 0 });
+  assert.equal(session.text, '乙丙甲');
 });
 
 test('formats elapsed time', () => {
