@@ -49,9 +49,9 @@ const comfySteps = [
 const d2cFlow = ['通过插件转为糙代码', '借助 AI 优化代码质量', '代码干净又整洁了！'];
 
 const aiTools = [
-  { name: 'UX Pilot', body: '快速出图，验证想法。', node: '539:9211' },
-  { name: 'Dify', body: '组建本地知识库。', node: '539:9214' },
-  { name: 'Deep Research', body: '快速了解新领域。', node: '539:9217' },
+  { name: 'UX Pilot', body: '快速出图，验证想法。', node: '539:9211', src: '/media/comic/tool-uxpilot.jpg' },
+  { name: 'Dify', body: '组建本地知识库。', node: '539:9214', src: '/media/comic/tool-dify.jpg' },
+  { name: 'Deep Research', body: '快速了解新领域。', node: '539:9217', src: '/media/comic/tool-deepresearch.jpg' },
 ];
 ---
 
@@ -73,9 +73,9 @@ const aiTools = [
   <!-- 概览 -->
   <div class="container case-section">
     <div class="overview-media">
-      <div class="reveal"><MediaSlot label="App 截图 · 书架" node="539:9342" ratio="4 / 3" /></div>
+      <div class="reveal"><MediaSlot label="App 截图 · 书架" ratio="4 / 3" src="/media/comic/shelf.jpg" /></div>
       <div class="reveal" style="--d:.08s">
-        <MediaSlot label="App 截图 · 阅读" node="539:9343" ratio="4 / 3" />
+        <MediaSlot label="App 截图 · 阅读" ratio="4 / 3" src="/media/comic/reading.jpg" />
       </div>
       <div class="reveal" style="--d:.16s">
         <MediaSlot label="App 截图 · AI 重绘" node="539:9344" ratio="4 / 3" />
@@ -120,8 +120,8 @@ const aiTools = [
       <div class="motive-media reveal" style="--d:.1s">
         <MediaSlot label="iPad 实机视觉" node="539:9296" ratio="4 / 3" />
         <div class="motive-media-pair">
-          <MediaSlot label="iPad 视觉 · 书页" node="539:9299" ratio="1 / 1" />
-          <MediaSlot label="iPad 视觉 · 收藏" node="539:9302" ratio="1 / 1" />
+          <MediaSlot label="iPad 视觉 · 书页" ratio="1 / 1" src="/media/comic/bookpage.jpg" />
+          <MediaSlot label="iPad 视觉 · 收藏" ratio="1 / 1" src="/media/comic/collection.jpg" />
         </div>
       </div>
     </div>
@@ -172,7 +172,7 @@ const aiTools = [
     </div>
 
     <div class="media-pair">
-      <div class="reveal"><MediaSlot label="设计过程视觉" node="539:9284" ratio="4 / 3" /></div>
+      <div class="reveal"><MediaSlot label="设计过程视觉" ratio="4 / 3" src="/media/comic/design-process.jpg" /></div>
       <div class="reveal" style="--d:.08s">
         <MediaSlot label="组件拆分视觉" node="539:9286" ratio="4 / 3" />
       </div>
@@ -207,15 +207,15 @@ const aiTools = [
 
       <div class="comfy-media">
         <div class="workflow reveal">
-          <MediaSlot label="ComfyUI 工作流全景" node="539:9226" ratio="21 / 9" />
+          <MediaSlot label="ComfyUI 工作流全景" ratio="21 / 9" src="/media/comic/comfyui-workflow.jpg" />
         </div>
         <div class="outputs">
-          <div class="reveal"><MediaSlot label="输出 · 上色" node="539:9250" ratio="3 / 4" /></div>
+          <div class="reveal"><MediaSlot label="输出 · 上色" ratio="3 / 4" src="/media/comic/output-color.jpg" /></div>
           <div class="reveal" style="--d:.07s">
-            <MediaSlot label="输出 · 风格化" node="539:9254" ratio="3 / 4" />
+            <MediaSlot label="输出 · 风格化" ratio="3 / 4" src="/media/comic/output-style.jpg" />
           </div>
           <div class="reveal" style="--d:.14s">
-            <MediaSlot label="输出 · 转绘真人" node="539:9256" ratio="3 / 4" />
+            <MediaSlot label="输出 · 转绘真人" ratio="3 / 4" src="/media/comic/output-real.jpg" />
           </div>
         </div>
       </div>
@@ -256,7 +256,7 @@ const aiTools = [
         {
           aiTools.map((t, i) => (
             <div class="card tool-card reveal" style={`--d:${i * 0.07}s`}>
-              <MediaSlot label={`${t.name} 截图`} node={t.node} ratio="16 / 10" />
+              <MediaSlot label={`${t.name} 截图`} node={t.node} ratio="16 / 10" src={t.src} />
               <div class="tool-body">
                 <h4 class="mono-sm">{t.name}</h4>
                 <p>{t.body}</p>

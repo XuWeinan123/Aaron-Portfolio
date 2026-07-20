@@ -15,9 +15,9 @@ import MediaSlot from '../../components/MediaSlot.astro';
   <!-- 概览媒体 -->
   <div class="container case-section">
     <div class="pair">
-      <div class="reveal"><MediaSlot label="作品概览视觉 A" node="539:9165" ratio="16 / 10" /></div>
+      <div class="reveal"><MediaSlot label="作品概览视觉 A" ratio="16 / 10" src="/media/other/overview-a.jpg" /></div>
       <div class="reveal" style="--d:.08s">
-        <MediaSlot label="作品概览视觉 B" node="539:9167" ratio="16 / 10" />
+        <MediaSlot label="作品概览视觉 B" ratio="16 / 10" src="/media/other/overview-b.jpg" />
       </div>
     </div>
   </div>
@@ -38,7 +38,7 @@ import MediaSlot from '../../components/MediaSlot.astro';
         </p>
       </div>
       <div class="reveal" style="--d:.1s">
-        <MediaSlot label="Figma 插件视觉" node="539:9154" ratio="16 / 10" />
+        <MediaSlot label="Figma 插件视觉" ratio="16 / 10" src="/media/other/figma-plugin.jpg" />
       </div>
     </div>
   </section>
@@ -61,10 +61,10 @@ import MediaSlot from '../../components/MediaSlot.astro';
         </a>
       </div>
       <div class="media-stack reveal" style="--d:.1s">
-        <MediaSlot label="分享现场视觉" node="539:9138" ratio="16 / 9" />
+        <MediaSlot label="分享现场视觉" ratio="16 / 9" src="/media/other/sharing.jpg" />
         <div class="pair">
-          <MediaSlot label="站内数据 A" node="539:9142" ratio="4 / 3" />
-          <MediaSlot label="站内数据 B" node="539:9143" ratio="4 / 3" />
+          <MediaSlot label="站内数据 A" ratio="4 / 3" src="/media/other/stats-a.jpg" />
+          <MediaSlot label="站内数据 B" ratio="4 / 3" src="/media/other/stats-b.jpg" />
         </div>
       </div>
     </div>
@@ -81,10 +81,17 @@ import MediaSlot from '../../components/MediaSlot.astro';
     </div>
     <div class="motion-grid">
       {
-        ['539:9121', '539:9122', '539:9123', '539:9124', '539:9125', '539:9126'].map(
-          (node, i) => (
+        [
+          { name: '贴近现实地设计', src: '/media/other/motion-reality.jpg' },
+          { name: '使用真实元素隐喻', src: '/media/other/motion-metaphor.jpg' },
+          { name: '跨设备延续动效', src: '/media/other/motion-crossdevice.jpg' },
+          { name: '多感官复合反馈', src: '/media/other/motion-feedback.jpg' },
+          { name: '无感知的引导', src: '/media/other/motion-guidance.jpg' },
+          { name: '基于预知设计', src: '/media/other/motion-foresee.jpg' },
+        ].map(
+          (m, i) => (
             <div class="reveal" style={`--d:${i * 0.05}s`}>
-              <MediaSlot label={`动效示例 ${i + 1}`} node={node} ratio="1 / 1" />
+              <MediaSlot label={m.name} ratio="1 / 1" src={m.src} />
             </div>
           )
         )

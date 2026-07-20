@@ -90,11 +90,13 @@ const beforeYouEnter = [
 const RESUME_FIGMA_URL =
   'https://www.figma.com/design/S01WbvJxrtsbrUqbaF7sdT/%F0%9F%93%9D-%E7%AE%80%E5%8E%86?node-id=2730-51683';
 
+const resumeNode = (id: string) => RESUME_FIGMA_URL.replace(/node-id=[\d-]+/, `node-id=${id}`);
+
 const historical = [
-  { label: 'OPPO 车机设计洞察', figma: RESUME_FIGMA_URL },
-  { label: '智能座舱度量体系', figma: RESUME_FIGMA_URL },
-  { label: '腾讯公益课件 AI 配图', figma: RESUME_FIGMA_URL },
-  { label: '跨屏互联创新项目', figma: RESUME_FIGMA_URL },
+  { label: 'OPPO 车机设计洞察', figma: resumeNode('2730-51627') },
+  { label: '智能座舱度量体系', figma: resumeNode('2730-51623') },
+  { label: '腾讯公益课件 AI 配图', figma: resumeNode('2730-51631') },
+  { label: '跨屏互联创新项目', figma: resumeNode('2730-51607') },
 ];
 ---
 
@@ -289,7 +291,7 @@ const historical = [
                 style={i > 0 ? `--d:${i * 0.1}s` : undefined}
                 href={`/work/${c.slug}/`}
               >
-                <MediaSlot label={c.media!.label} node={c.media!.node} ratio={c.media!.ratio} />
+                <MediaSlot label={c.media!.label} node={c.media!.node} ratio={c.media!.ratio} src={c.media!.src} />
                 <div class="project-body">
                   <div class="project-kicker">
                     <span class="mono-accent">{c.num}</span>

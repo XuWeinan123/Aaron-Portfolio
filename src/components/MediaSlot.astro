@@ -1,28 +1,49 @@
 ---
 /**
- * 媒体占位组件:真实图片需从 Figma 导出后替换。
- * 沿用 ds 原型「▢ 替换为真实截图」的斜纹占位样式，
- * node 为 Figma 节点 ID,方便对照 figma/content 的 Media Placeholders 清单导出。
+ * 媒体位组件:传入 src 时渲染真实图片(保持外框与比例),
+ * 未传 src 时显示斜纹占位(「▢ 替换为真实截图」样式)。
+ * node 为 Figma 节点 ID,方便对照 README 的替换清单导出。
  */
 interface Props {
   label: string;
   node?: string;
   ratio?: string; // 例如 "16 / 9"
   class?: string;
+  /** 真实图片路径(public 下),提供后替换占位样式 */
+  src?: string;
 }
-const { label, node, ratio = '16 / 9', class: className } = Astro.props;
+const { label, node, ratio = '16 / 9', class: className, src } = Astro.props;
 ---
 
-<figure class:list={['media-slot', className]} style={`aspect-ratio: ${ratio};`}>
-  <span class="tag">
-    <span>▢ {label}</span>
-    {node && <span class="node">Figma {node} · 待替换</span>}
-  </span>
-</figure>
+{
+  src ? (
+    <figure class:list={['media-slot', 'media-filled', className]} style={`aspect-ratio: ${ratio};`}>
+      <img src={src} alt={label} loading="lazy" />
+    </figure>
+  ) : (
+    <figure class:list={['media-slot', className]} style={`aspect-ratio: ${ratio};`}>
+      <span class="tag">
+        <span>▢ {label}</span>
+        {node && <span class="node">Figma {node} · 待替换</span>}
+      </span>
+    </figure>
+  )
+}
 
 <style>
   figure {
     margin: 0;
     width: 100%;
+  }
+
+  .media-filled {
+    background: var(--surface-2);
+  }
+
+  .media-filled img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 </style>
